@@ -1,0 +1,1 @@
+<?php require __DIR__ . '/vendor/autoload.php'; \ = require_once __DIR__ . '/bootstrap/app.php'; \->make('Illuminate\Contracts\Console\Kernel')->bootstrap(); print_r(\\App\\Models\\JobRequest::where('control_no', 'like', now()->format('Y-m') . '%')->orderBy('id', 'desc')->first()->control_no ?? 'None');

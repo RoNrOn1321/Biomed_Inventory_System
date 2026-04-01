@@ -14,6 +14,10 @@ const page = usePage<SharedData>();
 const showToast = ref(false);
 const toastMessage = ref('');
 
+const props = defineProps<{
+    nextControlNumber?: string;
+}>();
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Job Request Form',
@@ -24,7 +28,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 const form = useForm({
     requester_name: page.props.auth.user.name,
     date: new Date().toISOString().split('T')[0],
-    control_number: '',
     department: '',
     department_other: '',
     location: '',
@@ -42,7 +45,6 @@ const form = useForm({
     problem_description: '',
     services_desired: [] as string[],
     other_service: '',
-    repair_type: '',
     nature_of_work: '',
 });
 
@@ -170,9 +172,11 @@ const removeEquipment = (index: number) => {
                                 <Label for="control_number">Control #</Label>
                                 <Input
                                     id="control_number"
-                                    v-model="form.control_number"
-                                    placeholder="Optional"
-                                    class="border-orange-200 focus:border-orange-500 focus:ring-orange-500"
+                                    :model-value="props.nextControlNumber"
+                                    class="border-slate-200 bg-slate-50 text-slate-500 focus:border-slate-200 focus:ring-slate-200"
+                                    readonly
+                                    disabled
+                                    title="Auto-generated control number based on the next sequence."
                                 />
                             </div>
                         </div>
@@ -296,9 +300,9 @@ const removeEquipment = (index: number) => {
                             ></textarea>
                         </div>
 
-                        <div class="grid gap-6 rounded-xl border border-orange-100 bg-orange-50/50 p-4 md:grid-cols-2">
+                        <div class="rounded-xl border border-orange-100 bg-orange-50/50 p-4">
                             <div class="space-y-3">
-                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                                     <div v-for="service in services" :key="service" class="flex items-center space-x-2">
                                         <Checkbox
                                             :id="service.replace(/\\s+/g, '')"
@@ -314,7 +318,7 @@ const removeEquipment = (index: number) => {
                                         />
                                         <Label :for="service.replace(/\\s+/g, '')" class="text-sm font-normal">{{ service }}</Label>
                                     </div>
-                                    <div class="mt-1 flex items-center space-x-2 sm:col-span-2">
+                                    <div class="mt-1 flex items-center space-x-2 sm:col-span-2 md:col-span-3">
                                         <Checkbox
                                             id="Others"
                                             :checked="form.services_desired.includes('Others')"
@@ -332,31 +336,6 @@ const removeEquipment = (index: number) => {
                                             class="h-8 flex-1 border-orange-200 bg-white text-sm"
                                             :disabled="!form.services_desired.includes('Others')"
                                         />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col justify-center space-y-3 border-l border-orange-200 pl-6">
-                                <div class="flex flex-col gap-4">
-                                    <div class="flex items-center space-x-2">
-                                        <input
-                                            type="radio"
-                                            id="minor"
-                                            value="MINOR REPAIR"
-                                            v-model="form.repair_type"
-                                            class="border-orange-300 text-orange-600 focus:ring-orange-500"
-                                        />
-                                        <Label for="minor" class="font-semibold uppercase tracking-wider text-slate-700">MINOR REPAIR</Label>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <input
-                                            type="radio"
-                                            id="major"
-                                            value="MAJOR REPAIR"
-                                            v-model="form.repair_type"
-                                            class="border-orange-300 text-orange-600 focus:ring-orange-500"
-                                        />
-                                        <Label for="major" class="font-semibold uppercase tracking-wider text-slate-700">MAJOR REPAIR</Label>
                                     </div>
                                 </div>
                             </div>

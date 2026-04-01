@@ -20,7 +20,9 @@ class EndUserJobRequestController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('CreateJobRequest');
+        return Inertia::render('CreateJobRequest', [
+            'nextControlNumber' => $this->service->getNextControlNumber(),
+        ]);
     }
 
     public function store(Request $request)
@@ -28,7 +30,6 @@ class EndUserJobRequestController extends Controller
         $validated = $request->validate([
             'requester_name' => 'required|string|max:255',
             'date' => 'required|date',
-            'control_number' => 'nullable|string|max:255',
             'department' => 'nullable|string',
             'department_other' => 'nullable|string',
             'location' => 'nullable|string|max:255',
@@ -43,7 +44,7 @@ class EndUserJobRequestController extends Controller
             'problem_description' => 'nullable|string',
             'services_desired' => 'nullable|array',
             'other_service' => 'nullable|string',
-            'repair_type' => 'nullable|string',
+
             'nature_of_work' => 'nullable|string',
         ]);
 

@@ -44,6 +44,20 @@ class EndUserJobRequestService
             ->all();
     }
 
+    public function getNextControlNumber(): string
+    {
+        $currentYearMonth = now()->format('Y-m');
+        $lastJob = JobRequest::where('control_no', 'like', $currentYearMonth . '-%')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $nextNumber = 1;
+        if ($lastJob && preg_match('/-(\d{4})$/', $lastJob->control_no, $matches)) {
+            $nextNumber = (int) $matches[1] + 1;
+        }
+        return $currentYearMonth . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
     public function store(array $validated, ?int $userId): void
     {
         DB::transaction(function () use ($validated, $userId) {
@@ -56,24 +70,28 @@ class EndUserJobRequestService
                 'request_type' => count($services) > 0 ? json_encode($services) : null,
             ]);
 
-            $repair = null;
-            if (!empty($validated['repair_type'])) {
-                $repair = Repair::create([
-                    'repair_type' => $validated['repair_type'],
-                ]);
-            }
-
             $finalDepartment = $validated['department'] === 'Other'
                 ? $validated['department_other']
                 : $validated['department'];
 
+            // Generate control number: YYYY-MM-XXXX
+            $currentYearMonth = now()->format('Y-m');
+            $lastJob = JobRequest::where('control_no', 'like', $currentYearMonth . '-%')
+                ->orderBy('id', 'desc')
+                ->first();
+
+            $nextNumber = 1;
+            if ($lastJob && preg_match('/-(\d{4})$/', $lastJob->control_no, $matches)) {
+                $nextNumber = (int) $matches[1] + 1;
+            }
+            $controlNo = $currentYearMonth . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
             $jobR = JobRequest::create([
                 'user_id' => $userId,
                 'date' => $validated['date'],
-                'control_no' => $validated['control_number'],
+                'control_no' => $controlNo,
                 'location' => $validated['location'],
                 'request_detail_id' => $detail->id,
-                'repair_id' => $repair?->id,
                 'request_complaints' => $validated['nature_of_work'],
                 'job_report' => $validated['problem_description'],
                 'requester_name' => $validated['requester_name'],
