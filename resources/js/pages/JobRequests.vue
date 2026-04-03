@@ -536,20 +536,28 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
 
                 <div v-if="selectedViewRequest" class="space-y-6 py-4">
                     <!-- Basic Request Information -->
-                    <div>
-                        <h4 class="mb-4 border-b border-orange-100 pb-2 text-lg font-semibold text-orange-700">Basic Information</h4>
-                        <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+                    <div class="overflow-hidden rounded-xl border border-orange-200">
+                        <h4 class="bg-gradient-to-r from-orange-100 to-amber-50 px-4 py-3 text-lg font-semibold text-orange-700">
+                            Basic Information
+                        </h4>
+                        <div class="grid grid-cols-1 gap-4 p-4 text-sm md:grid-cols-2">
                             <div>
                                 <span class="block font-medium text-slate-500">Requester:</span>
-                                <span class="font-medium text-slate-900">{{ selectedViewRequest.requester_name }}</span>
+                                <span class="mt-0.5 block rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-medium text-slate-900">{{
+                                    selectedViewRequest.requester_name
+                                }}</span>
                             </div>
                             <div>
                                 <span class="block font-medium text-slate-500">Department:</span>
-                                <span class="text-slate-900">{{ selectedViewRequest.department || 'N/A' }}</span>
+                                <span class="mt-0.5 block rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-slate-900">{{
+                                    selectedViewRequest.department || 'N/A'
+                                }}</span>
                             </div>
                             <div>
                                 <span class="block font-medium text-slate-500">Equipment Name:</span>
-                                <span class="text-slate-900">{{ selectedViewRequest.equipment_name }}</span>
+                                <span class="mt-0.5 block rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-slate-900">{{
+                                    selectedViewRequest.equipment_name
+                                }}</span>
                             </div>
                             <div>
                                 <span class="block font-medium text-slate-500">Priority:</span>
@@ -562,19 +570,27 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                             </div>
                             <div>
                                 <span class="block font-medium text-slate-500">Requested At:</span>
-                                <span class="text-slate-900">{{ formatDateTime(selectedViewRequest.requested_at) }}</span>
+                                <span class="mt-0.5 block rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-slate-900">{{
+                                    formatDateTime(selectedViewRequest.requested_at)
+                                }}</span>
                             </div>
                             <div>
                                 <span class="block font-medium text-slate-500">Location:</span>
-                                <span class="text-slate-900">{{ selectedViewRequest.location || 'N/A' }}</span>
+                                <span class="mt-0.5 block rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-slate-900">{{
+                                    selectedViewRequest.location || 'N/A'
+                                }}</span>
                             </div>
                             <div>
                                 <span class="block font-medium text-slate-500">Control N°:</span>
-                                <span class="text-slate-900">{{ selectedViewRequest.control_no || 'N/A' }}</span>
+                                <span class="mt-0.5 block rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-slate-900">{{
+                                    selectedViewRequest.control_no || 'N/A'
+                                }}</span>
                             </div>
                             <div>
                                 <span class="block font-medium text-slate-500">Form Date:</span>
-                                <span class="text-slate-900">{{ selectedViewRequest.date || 'N/A' }}</span>
+                                <span class="mt-0.5 block rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-slate-900">{{
+                                    selectedViewRequest.date || 'N/A'
+                                }}</span>
                             </div>
                             <div>
                                 <span class="block font-medium text-slate-500">Status:</span>
@@ -587,7 +603,7 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                             </div>
                             <div class="col-span-1 md:col-span-2">
                                 <span class="mb-1 block font-medium text-slate-500">Issue Summary:</span>
-                                <p class="rounded-lg border border-slate-100 bg-slate-50 p-3 text-slate-900">
+                                <p class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-slate-900">
                                     {{ selectedViewRequest.issue_summary }}
                                 </p>
                             </div>
@@ -595,9 +611,9 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                     </div>
 
                     <!-- Request Detail -->
-                    <div>
-                        <h4 class="mb-4 border-b border-orange-100 pb-2 text-lg font-semibold text-orange-700">Request Detail</h4>
-                        <div class="grid grid-cols-1 gap-4 text-sm">
+                    <div class="overflow-hidden rounded-xl border border-orange-200">
+                        <h4 class="bg-gradient-to-r from-orange-100 to-amber-50 px-4 py-3 text-lg font-semibold text-orange-700">Request Detail</h4>
+                        <div class="grid grid-cols-1 gap-4 p-4 text-sm">
                             <div v-if="selectedViewRequest.request_type && selectedViewRequest.request_type.length">
                                 <span class="mb-2 block font-medium text-slate-500">Services Desired / Requested:</span>
                                 <div class="flex flex-wrap gap-2">
@@ -618,13 +634,13 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                             </div>
                             <div>
                                 <span class="mb-1 block font-medium text-slate-500">Nature of Work Requested / Complaints:</span>
-                                <p class="min-h-[3rem] rounded-lg border border-slate-100 bg-slate-50 p-3 text-slate-900">
+                                <p class="min-h-[3rem] rounded-lg border border-slate-200 bg-slate-50 p-3 text-slate-900">
                                     {{ selectedViewRequest.request_complaints || 'No complaints recorded.' }}
                                 </p>
                             </div>
                             <div>
                                 <span class="mb-1 block font-medium text-slate-500">Job Report:</span>
-                                <p class="min-h-[3rem] rounded-lg border border-slate-100 bg-slate-50 p-3 text-slate-900">
+                                <p class="min-h-[3rem] rounded-lg border border-slate-200 bg-slate-50 p-3 text-slate-900">
                                     {{ selectedViewRequest.job_report || 'No job report recorded.' }}
                                 </p>
                             </div>
