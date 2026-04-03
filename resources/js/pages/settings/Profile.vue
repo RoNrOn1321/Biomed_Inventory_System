@@ -30,18 +30,18 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const page = usePage<SharedData>();
-const user = page.props.auth.user as User;
+const user = computed(() => page.props.auth.user as User);
 const uploadedPreviewUrl = ref<string | null>(null);
 
 const form = useForm({
-    name: user.name,
-    email: user.email,
+    name: user.value.name,
+    email: user.value.email,
     avatar: null as File | null,
 });
 
-const avatarSrc = computed(() => uploadedPreviewUrl.value || user.avatar || '');
+const avatarSrc = computed(() => uploadedPreviewUrl.value || user.value.avatar || '');
 const initials = computed(() =>
-    user.name
+    user.value.name
         .split(' ')
         .map((part) => part[0])
         .join('')
@@ -61,7 +61,7 @@ const updateAvatar = (event: Event) => {
 
     revokePreviewUrl();
     form.avatar = file;
-    uploadedPreviewUrl.value = file ? URL.createObjectURL(file) : user.avatar || null;
+    uploadedPreviewUrl.value = file ? URL.createObjectURL(file) : user.value.avatar || null;
 };
 
 const submit = () => {
