@@ -53,9 +53,9 @@ class EquipmentService
         $equipment->delete();
     }
 
-    public function export(string $format, Carbon $from, Carbon $to, ?string $search)
+    public function export(string $format, Carbon $from, Carbon $to, ?string $search, ?string $status = null)
     {
-        $equipment = $this->buildExportQuery($from, $to, $search)->get();
+        $equipment = $this->buildExportQuery($from, $to, $search, $status)->get();
         $filenameBase = sprintf('inventory-%s-to-%s', $from->format('Y-m'), $to->format('Y-m'));
 
         return match ($format) {
@@ -98,7 +98,7 @@ class EquipmentService
         return $query;
     }
 
-    private function buildExportQuery(Carbon $from, Carbon $to, ?string $search)
+    private function buildExportQuery(Carbon $from, Carbon $to, ?string $search, ?string $status = null)
     {
         $query = Equipment::query()
             ->whereBetween('pm_date_done', [$from->toDateString(), $to->toDateString()])
@@ -115,6 +115,10 @@ class EquipmentService
                     ->orWhere('serial_number', 'like', $searchTerm)
                     ->orWhere('tag_number', 'like', $searchTerm);
             });
+        }
+
+        if ($status) {
+            $query->where('status', $status);
         }
 
         return $query;

@@ -171,6 +171,9 @@ const downloadInventory = () => {
         to: exportTo.value,
         search: search.value,
     });
+    if (filterStatus.value !== 'all') {
+        params.set('status', filterStatus.value);
+    }
 
     window.open(`/equipment/export?${params.toString()}`, '_blank');
 };
