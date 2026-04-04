@@ -14,7 +14,7 @@ class EquipmentController extends Controller
 
     public function index(Request $request)
     {
-        $filters = $request->only(['year', 'month', 'search']);
+        $filters = $request->only(['year', 'month', 'search', 'status']);
         $filters['year'] = $filters['year'] ?? now()->year;
         $filters['month'] = $filters['month'] ?? now()->format('m');
 
@@ -24,6 +24,9 @@ class EquipmentController extends Controller
         }
         if ($queryFilters['month'] === 'all') {
             unset($queryFilters['month']);
+        }
+        if (empty($queryFilters['status']) || $queryFilters['status'] === 'all') {
+            unset($queryFilters['status']);
         }
 
         return Inertia::render('Inventory', [

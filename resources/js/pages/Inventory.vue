@@ -57,6 +57,7 @@ const props = defineProps<{
         year?: string;
         month?: string;
         search?: string;
+        status?: string;
     };
 }>();
 
@@ -117,6 +118,7 @@ const deleteForm = useForm({
 const search = ref(props.filters.search || '');
 const filterYear = ref(props.filters.year || currentYear);
 const filterMonth = ref(props.filters.month || currentMonth);
+const filterStatus = ref(props.filters.status || 'all');
 const exportFormat = ref<'pdf' | 'excel' | 'word'>('pdf');
 const exportFrom = ref(defaultFromMonthValue);
 const exportTo = ref(currentMonthValue);
@@ -130,15 +132,16 @@ const exportRangeLabel = computed(() => {
 
 let searchTimeout: ReturnType<typeof setTimeout>;
 
-watch([search, filterYear, filterMonth], () => {
+watch([search, filterYear, filterMonth, filterStatus], () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
         router.get(
             '/Inventory',
             {
-                search: search.value || undefined, // use undefined to remove param from url if empty
+                search: search.value || undefined,
                 year: filterYear.value || undefined,
                 month: filterMonth.value || undefined,
+                status: filterStatus.value !== 'all' ? filterStatus.value : undefined,
             },
             { preserveState: true, preserveScroll: true, replace: true },
         );
@@ -149,6 +152,7 @@ const clearFilters = () => {
     search.value = '';
     filterYear.value = currentYear;
     filterMonth.value = currentMonth;
+    filterStatus.value = 'all';
 };
 
 const toggleExportPanel = () => {
@@ -535,6 +539,16 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                 <option value="10">October</option>
                                 <option value="11">November</option>
                                 <option value="12">December</option>
+                            </select>
+                            <select
+                                id="filterStatus"
+                                v-model="filterStatus"
+                                class="block w-40 rounded-lg border-0 py-2.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-orange-600 sm:text-sm sm:leading-6"
+                            >
+                                <option value="all">All Status</option>
+                                <option value="Functional">Functional</option>
+                                <option value="Defective">Defective</option>
+                                <option value="Unserviceable">Unserviceable</option>
                             </select>
                             <button
                                 type="button"

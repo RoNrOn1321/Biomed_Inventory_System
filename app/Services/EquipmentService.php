@@ -91,6 +91,10 @@ class EquipmentService
             });
         }
 
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
         return $query;
     }
 
