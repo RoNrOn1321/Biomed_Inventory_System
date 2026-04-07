@@ -2,6 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import axios from 'axios';
 import { computed, ref, watch } from 'vue';
 
 interface EquipmentDocument {
@@ -279,8 +280,8 @@ const closeCalibrationModal = () => {
 };
 
 const fetchCalibrationFiles = async (equipmentId: number) => {
-    const res = await fetch(`/equipment/${equipmentId}/calibrations`);
-    calibrationFiles.value = await res.json();
+    const res = await axios.get(`/equipment/${equipmentId}/calibrations`);
+    calibrationFiles.value = res.data;
 };
 
 const uploadCalibrationFiles = async (event: Event) => {
@@ -292,23 +293,14 @@ const uploadCalibrationFiles = async (event: Event) => {
         formData.append('files[]', file);
     }
     try {
-        const res = await fetch(`/equipment/${selectedEquipmentForCal.value.id}/calibrations`, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '' },
-            body: formData,
+        const res = await axios.post(`/equipment/${selectedEquipmentForCal.value.id}/calibrations`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
         });
-        if (!res.ok) {
-            const err = await res.text();
-            console.error('Upload failed:', res.status, err);
-            alert(`Upload failed (${res.status}). Check console for details.`);
-        } else {
-            showToast('Calibration files uploaded successfully!');
-            router.reload({ only: ['equipments'] });
-        }
-    } catch (e) {
+        showToast('Calibration files uploaded successfully!');
+        router.reload({ only: ['equipments'] });
+    } catch (e: any) {
         console.error('Upload error:', e);
-        alert('Upload error. Check console for details.');
+        alert(`Upload error. Check console for details. ${e.response?.status}`);
     } finally {
         uploadingCalibration.value = false;
         input.value = '';
@@ -318,10 +310,7 @@ const uploadCalibrationFiles = async (event: Event) => {
 
 const deleteCalibrationFile = async (file: EquipmentCalibrationFile) => {
     if (!confirm(`Delete "${file.file_name}"?`)) return;
-    await fetch(`/equipment/calibrations/${file.id}`, {
-        method: 'DELETE',
-        headers: { 'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '' },
-    });
+    await axios.delete(`/equipment/calibrations/${file.id}`);
     showToast('Calibration file deleted successfully!');
     if (previewCalibrationFile.value?.id === file.id) previewCalibrationFile.value = null;
     if (selectedEquipmentForCal.value) {
@@ -352,8 +341,8 @@ const closeDocumentsModal = () => {
 };
 
 const fetchDocuments = async (equipmentId: number) => {
-    const res = await fetch(`/equipment/${equipmentId}/documents`);
-    documents.value = await res.json();
+    const res = await axios.get(`/equipment/${equipmentId}/documents`);
+    documents.value = res.data;
 };
 
 const uploadDocuments = async (event: Event) => {
@@ -365,22 +354,13 @@ const uploadDocuments = async (event: Event) => {
         formData.append('files[]', file);
     }
     try {
-        const res = await fetch(`/equipment/${selectedEquipmentForDocs.value.id}/documents`, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '' },
-            body: formData,
+        const res = await axios.post(`/equipment/${selectedEquipmentForDocs.value.id}/documents`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
         });
-        if (!res.ok) {
-            const err = await res.text();
-            console.error('Upload failed:', res.status, err);
-            alert(`Upload failed (${res.status}). Check console for details.`);
-        } else {
-            showToast('Documents uploaded successfully!');
-        }
-    } catch (e) {
+        showToast('Documents uploaded successfully!');
+    } catch (e: any) {
         console.error('Upload error:', e);
-        alert('Upload error. Check console for details.');
+        alert(`Upload error. Check console for details. ${e.response?.status}`);
     } finally {
         uploading.value = false;
         input.value = '';
@@ -390,10 +370,7 @@ const uploadDocuments = async (event: Event) => {
 
 const deleteDocument = async (doc: EquipmentDocument) => {
     if (!confirm(`Delete "${doc.file_name}"?`)) return;
-    await fetch(`/equipment/documents/${doc.id}`, {
-        method: 'DELETE',
-        headers: { 'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '' },
-    });
+    await axios.delete(`/equipment/documents/${doc.id}`);
     showToast('Document deleted successfully!');
     if (previewDocument.value?.id === doc.id) previewDocument.value = null;
     if (selectedEquipmentForDocs.value) await fetchDocuments(selectedEquipmentForDocs.value.id);

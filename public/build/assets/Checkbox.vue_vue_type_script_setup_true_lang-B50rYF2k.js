@@ -1,6 +1,0 @@
-import{c as u,S as f,W as p,a as m,j as h}from"./createLucideIcon-5k3u6E_z.js";import{d as k,q as g,o as b,i as y,u as e,A as _,w as o,a as r,B}from"./app-DaPavlNF.js";/**
- * @license lucide-vue-next v0.468.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */const v=u("CheckIcon",[["path",{d:"M20 6 9 17l-5-5",key:"1gmf2c"}]]),w=k({__name:"Checkbox",props:{defaultChecked:{type:Boolean},checked:{type:[Boolean,String]},disabled:{type:Boolean},required:{type:Boolean},name:{},value:{},id:{},asChild:{type:Boolean},as:{},class:{}},emits:["update:checked"],setup(c,{emit:d}){const s=c,n=d,i=g(()=>{const{class:a,...t}=s;return t}),l=f(i,n);return(a,t)=>(b(),y(e(p),_(e(l),{class:e(m)("peer size-5 shrink-0 rounded-sm border border-input ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-accent-foreground",s.class)}),{default:o(()=>[r(e(h),{class:"flex h-full w-full items-center justify-center text-current"},{default:o(()=>[B(a.$slots,"default",{},()=>[r(e(v),{class:"size-3.5 stroke-[3]"})])]),_:3})]),_:3},16,["class"]))}});export{w as _};
