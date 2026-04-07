@@ -31,7 +31,7 @@ class EquipmentService
         return self::EXPORT_FORMATS;
     }
 
-    public function paginatedList(array $filters, int $perPage = 10): LengthAwarePaginator
+    public function paginatedList(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         return $this->buildQuery($filters)->paginate($perPage)->withQueryString();
     }
