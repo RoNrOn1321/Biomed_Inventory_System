@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { CalendarDays, ClipboardCheck, Search, ShieldCheck, Wrench } from 'lucide-vue-next';
+import { useEcho } from '@laravel/echo-vue';
+import { CalendarDays, ClipboardCheck, Search, ShieldCheck, Wrench, BellRing } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface JobRequestItem {
@@ -43,6 +44,27 @@ const page = usePage<SharedData>();
 const search = ref('');
 const statusFilter = ref<'All' | 'Pending' | 'Accepted' | 'Done'>('All');
 const canAcceptRequests = computed(() => ['Admin', 'Biomed_Technician'].includes(page.props.auth.user.account_type));
+
+const showToast = ref(false);
+const toastMessage = ref('');
+
+const playNotificationSound = () => {
+    const audio = new Audio('/sounds/notification.mp3');
+    audio.play().catch(e => console.error("Audio play failed:", e));
+};
+
+if (canAcceptRequests.value) {
+    useEcho('job-requests', '.JobRequestCreated', (payload: any) => {
+        toastMessage.value = payload.message || 'A new Job Request has been created!';
+        showToast.value = true;
+        playNotificationSound();
+        router.reload({ only: ['jobRequests'] });
+
+        setTimeout(() => {
+            showToast.value = false;
+        }, 5000);
+    });
+}
 
 // Dialog and form state
 const selectedJobRequestId = ref<number | null>(null);
@@ -785,5 +807,45 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        <!-- Real-time Toast Notification -->
+        <transition
+            enter-active-class="transform ease-out duration-300 transition"
+            enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+            enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+            leave-active-class="transition ease-in duration-100"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+        >
+            <div
+                v-if="showToast"
+                class="fixed bottom-4 right-4 z-[9999] flex w-full max-w-sm items-center gap-3 overflow-hidden rounded-lg border border-orange-200 bg-white px-4 py-3 shadow-xl ring-1 ring-black/5 sm:bottom-6 sm:right-6"
+            >
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100">
+                    <BellRing class="h-5 w-5 text-orange-600 animate-pulse" />
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-semibold text-slate-900">New Request</p>
+                    <p class="mt-0.5 text-sm text-slate-600">{{ toastMessage }}</p>
+                </div>
+                <button
+                    @click="showToast = false"
+                    class="ml-auto flex shrink-0 items-center justify-center text-slate-400 hover:text-slate-600 focus:outline-none"
+                >
+                    <span class="sr-only">Close</span>
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path
+                            fill-rule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                </button>
+                <div class="absolute bottom-0 left-0 h-1 w-full bg-orange-100">
+                    <div class="h-full animate-[shrink_5s_linear_forwards] bg-orange-500"></div>
+                </div>
+            </div>
+        </transition>
+
     </AppLayout>
 </template>

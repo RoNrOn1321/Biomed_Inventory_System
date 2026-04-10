@@ -113,6 +113,8 @@ class EndUserJobRequestService
                     'end_user' => $eq['end_user'],
                 ]);
             }
+            
+            \App\Events\JobRequestCreated::dispatch('New job request created for ' . $jobR->equipment_name, $jobR->id);
         });
     }
 }

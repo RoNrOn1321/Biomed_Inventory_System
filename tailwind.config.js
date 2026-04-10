@@ -71,6 +71,15 @@ export default {
                     ring: 'hsl(var(--sidebar-ring))',
                 },
             },
+            keyframes: {
+                shrink: {
+                    '0%': { width: '100%' },
+                    '100%': { width: '0%' }
+                }
+            },
+            animation: {
+                shrink: 'shrink 5s linear forwards'
+            }
         },
     },
     plugins: [require('tailwindcss-animate')],
