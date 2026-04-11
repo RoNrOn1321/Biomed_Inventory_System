@@ -765,6 +765,8 @@ class ComposerStaticInit238758776cef75e40b61f11e6f2e00e2
     );
 
     public static $classMap = array (
+        'App\\Console\\Commands\\TestDispatch' => __DIR__ . '/../..' . '/app/Console/Commands/TestDispatch.php',
+        'App\\Events\\JobRequestCreated' => __DIR__ . '/../..' . '/app/Events/JobRequestCreated.php',
         'App\\Http\\Controllers\\Auth\\AuthenticatedSessionController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/AuthenticatedSessionController.php',
         'App\\Http\\Controllers\\Auth\\ConfirmablePasswordController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/ConfirmablePasswordController.php',
         'App\\Http\\Controllers\\Auth\\EmailVerificationNotificationController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/EmailVerificationNotificationController.php',

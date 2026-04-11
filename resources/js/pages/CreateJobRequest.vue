@@ -292,13 +292,13 @@ const removeEquipment = (index: number) => {
                             </p>
                         </div>
 
-                        <div class="space-y-2">
+                        <!-- <div class="space-y-2">
                             <textarea
                                 v-model="form.problem_description"
                                 placeholder="Describe the problem, error codes, etc. here..."
                                 class="min-h-[100px] w-full rounded-md border border-orange-200 bg-orange-50/30 px-3 py-2 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                             ></textarea>
-                        </div>
+                        </div> -->
 
                         <div class="rounded-xl border border-orange-100 bg-orange-50/50 p-4">
                             <div class="space-y-3">
