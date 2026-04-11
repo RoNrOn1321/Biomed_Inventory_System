@@ -10,7 +10,7 @@ class JobRequestService
     public function listAll(): array
     {
         return JobRequest::query()
-            ->with(['acceptedBy:id,name', 'biomedicalServiceDoc', 'requestDetail', 'repair'])
+            ->with(['acceptedBy:id,name', 'biomedicalServiceDoc', 'requestDetail', 'repair', 'descEquAccessories'])
             ->orderByRaw("case when status = 'Pending' then 0 when status = 'Accepted' then 1 else 2 end")
             ->orderByDesc('requested_at')
             ->get()
@@ -34,6 +34,7 @@ class JobRequestService
                 'job_report' => $jobRequest->job_report,
                 'control_no' => $jobRequest->control_no,
                 'location' => $jobRequest->location,
+                'end_user' => $jobRequest->descEquAccessories->pluck('end_user')->filter()->join(', '), 
                 'date' => $jobRequest->date,
             ])
             ->all();

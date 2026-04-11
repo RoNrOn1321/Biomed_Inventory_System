@@ -21,6 +21,8 @@ interface RecentRequest {
     equipment_name: string;
     priority: 'Low' | 'Medium' | 'High' | 'Urgent';
     requested_at: string | null;
+    location?: string | null;
+    end_user?: string | null;
 }
 
 const props = defineProps<{
@@ -209,6 +211,8 @@ const priorityClass = (priority: RecentRequest['priority']) => {
                                         {{ request.requester_name }} • {{ request.department || 'No department listed' }}
                                     </p>
                                     <p class="text-xs text-slate-500">Requested {{ formatDateTime(request.requested_at) }}</p>
+                                    <p class="text-xs text-slate-500">Location: {{ request.location || 'No location listed' }}</p>
+                                    <p class="text-xs text-slate-500">End User: {{ request.end_user || 'No end user listed' }}</p>
                                 </div>
 
                                 <Button as-child class="bg-orange-600 text-white hover:bg-orange-700">

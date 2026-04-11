@@ -60,4 +60,8 @@ class JobRequest extends Model
     {
         return $this->belongsTo(Repair::class, 'repair_id');
     }
+     public function descEquAccessories()
+    {
+        return $this->hasMany(DescEquAccessory::class, 'job_request_id');
+    }
 }

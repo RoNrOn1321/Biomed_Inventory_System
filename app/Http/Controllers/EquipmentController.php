@@ -95,4 +95,22 @@ class EquipmentController extends Controller
 
         return redirect()->back();
     }
+
+    public function search(Request $request)
+    {
+        $query = $request->query('q');
+        if (empty($query)) {
+            return response()->json([]);
+        }
+
+        // Queries standard fields like description, brand, or serial_number
+        $equipments = \App\Models\Equipment::where('description', 'like', "%{$query}%")
+            ->orWhere('serial_number', 'like', "%{$query}%")
+            ->orWhere('tag_number', 'like', "%{$query}%")
+            ->orWhere('brand', 'like', "%{$query}%")
+            ->limit(10)
+            ->get();
+
+        return response()->json($equipments);
+    }
 }

@@ -8,6 +8,7 @@ Route::redirect('/', '/dashboard')->name('home');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', App\Http\Controllers\DashboardController::class)->name('dashboard');
     Route::get('Inventory', [App\Http\Controllers\EquipmentController::class, 'index'])->name('inventory.index');
+    Route::get('/api/equipments/search', [App\Http\Controllers\EquipmentController::class, 'search'])->name('equipment.search');
 
     Route::get('/JobRequests', [App\Http\Controllers\JobRequestController::class, 'index'])->name('job-requests.index');
     Route::put('/JobRequests/{jobRequest}/accept', [App\Http\Controllers\JobRequestController::class, 'accept'])->name('job-requests.accept');
