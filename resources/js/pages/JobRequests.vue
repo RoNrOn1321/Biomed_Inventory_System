@@ -27,6 +27,7 @@ interface JobRequestItem {
     control_no?: string | null;
     location?: string | null;
     date?: string | null;
+    end_user?: string | null;
 }
 
 const props = defineProps<{
@@ -341,6 +342,14 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                     <div>
                                         <p class="font-semibold text-slate-900">Department</p>
                                         <p>{{ jobRequest.department || 'Not provided' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-900">Location</p>
+                                        <p>{{ jobRequest.location || 'N/A' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-900">End User</p>
+                                        <p>{{ jobRequest.end_user || 'N/A' }}</p>
                                     </div>
                                     <div>
                                         <p class="font-semibold text-slate-900">Requested</p>

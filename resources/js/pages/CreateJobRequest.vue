@@ -8,6 +8,7 @@ import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { CheckCircle2, FileText, Plus, Send, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
+import axios from 'axios';
 
 const page = usePage<SharedData>();
 
@@ -116,6 +117,50 @@ const removeEquipment = (index: number) => {
         form.equipments.splice(index, 1);
     }
 };
+
+// --- Add your tracking reactives ---
+const activeSearchIndex = ref<number | null>(null);
+const searchResults = ref<any[]>([]);
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// --- Add the search function ---
+const handleEquipmentSearch = (index: number) => {
+    const query = form.equipments[index].equipment_name;
+    activeSearchIndex.value = index;
+    
+    if (!query || query.length < 2) {
+        searchResults.value = [];
+        return;
+    }
+
+    if (searchTimeout) clearTimeout(searchTimeout);
+    
+    // Debounce to avoid spamming the backend
+    searchTimeout = setTimeout(async () => {
+        try {
+            const { data } = await axios.get('/api/equipments/search', { params: { q: query } });
+            searchResults.value = data;
+        } catch (e) {
+            console.error('Failed to search inventory', e);
+        }
+    }, 300); 
+};
+
+// --- Add function to select one of the equipment results ---
+const selectEquipment = (index: number, equipment: any) => {
+    const item = form.equipments[index];
+    
+    // Map backend attributes to frontend form payload
+    item.equipment_name = equipment.description || '';
+    item.brand = equipment.brand || '';
+    item.model = equipment.model || '';
+    item.serial_number = equipment.serial_number || '';
+    item.location = equipment.location || ''; // Depending on what "end_user" maps to on DB
+    
+    // Hide dropdown
+    activeSearchIndex.value = null;
+    searchResults.value = [];
+};
 </script>
 
 <template>
@@ -148,7 +193,7 @@ const removeEquipment = (index: number) => {
 
                         <div class="grid gap-6 md:grid-cols-3">
                             <div class="space-y-2 md:col-span-1">
-                                <Label for="requester_name">Requested By (Printed Name)</Label>
+                                <Label for="requester_name">Requested By (Department)</Label>
                                 <Input
                                     id="requester_name"
                                     v-model="form.requester_name"
@@ -215,7 +260,7 @@ const removeEquipment = (index: number) => {
                         </div>
                     </section>
 
-                    <!-- Equipment Details -->
+                                                          <!-- Equipment Details -->
                     <section class="space-y-4 pt-4">
                         <div class="flex items-center justify-between border-b border-orange-200 pb-2">
                             <h2 class="inline-block rounded bg-orange-100 px-3 py-1 text-sm font-semibold text-orange-900">
@@ -233,9 +278,9 @@ const removeEquipment = (index: number) => {
                         </div>
 
                         <div class="space-y-4">
+                            <!-- This is the loop where "index" comes from -->
                             <div
-                                v-for="(equipment, index) in form.equipments"
-                                :key="index"
+                                v-for="(equipment, index) in form.equipments" :key="index"
                                 class="relative rounded-lg border border-orange-100 bg-orange-50/30 p-4"
                             >
                                 <div class="absolute -right-2 -top-2" v-if="form.equipments.length > 1">
@@ -247,40 +292,85 @@ const removeEquipment = (index: number) => {
                                         <Trash2 class="h-3 w-3" />
                                     </button>
                                 </div>
-                                <div class="grid gap-4 md:grid-cols-5">
-                                    <div class="space-y-2">
-                                        <Label :for="`eq_name_${index}`" class="text-xs">Name</Label>
-                                        <Input
-                                            :id="`eq_name_${index}`"
-                                            v-model="equipment.equipment_name"
-                                            class="h-9 border-orange-200 bg-white text-sm"
-                                            required
-                                        />
+                                
+                                <!-- State 1: Equipment Selected -->
+                                <div v-if="equipment.serial_number || equipment.brand || equipment.model" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-md border border-orange-200 bg-white p-4 shadow-sm">
+                                    <div class="space-y-1">
+                                        <h3 class="font-bold text-slate-800">{{ equipment.equipment_name || 'Unnamed Equipment' }}</h3>
+                                        <div class="text-sm text-slate-600 flex flex-wrap gap-x-4 gap-y-1">
+                                            <span v-if="equipment.brand"><span class="font-semibold text-slate-500">Brand:</span> {{ equipment.brand }}</span>
+                                            <span v-if="equipment.model"><span class="font-semibold text-slate-500">Model:</span> {{ equipment.model }}</span>
+                                            <span v-if="equipment.serial_number"><span class="font-semibold text-slate-500">SN:</span> {{ equipment.serial_number }}</span>
+                                            <span v-if="equipment.location"><span class="font-semibold text-slate-500">Location:</span> {{ equipment.location }}</span>
+                                            <div class="mt-2 flex w-full flex-col sm:flex-row sm:items-center gap-2 sm:w-auto">
+                                                <Label  class="text-xs font-semibold text-slate-500 whitespace-nowrap">End User:</Label>
+                                                <Input
+                                                     v-model="equipment.end_user" 
+                                                    placeholder="Enter end user"
+                                                    class="h-8 w-full sm:w-48 border-orange-200 bg-white text-xs focus:border-orange-400 focus:ring-orange-400" 
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="space-y-2">
-                                        <Label :for="`eq_brand_${index}`" class="text-xs">Brand</Label>
-                                        <Input :id="`eq_brand_${index}`" v-model="equipment.brand" class="h-9 border-orange-200 bg-white text-sm" />
-                                    </div>
-                                    <div class="space-y-2">
-                                        <Label :for="`eq_model_${index}`" class="text-xs">Model</Label>
-                                        <Input :id="`eq_model_${index}`" v-model="equipment.model" class="h-9 border-orange-200 bg-white text-sm" />
-                                    </div>
-                                    <div class="space-y-2">
-                                        <Label :for="`eq_serial_${index}`" class="text-xs">Serial Number</Label>
-                                        <Input
-                                            :id="`eq_serial_${index}`"
-                                            v-model="equipment.serial_number"
-                                            class="h-9 border-orange-200 bg-white text-sm"
-                                        />
-                                    </div>
-                                    <div class="space-y-2">
-                                        <Label :for="`eq_user_${index}`" class="text-xs">End User</Label>
-                                        <Input :id="`eq_user_${index}`" v-model="equipment.end_user" class="h-9 border-orange-200 bg-white text-sm" />
-                                    </div>
+                                    <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        size="sm" 
+                                        class="shrink-0 text-orange-600 border-orange-200 hover:bg-orange-50"
+                                        @click="() => {
+                                            equipment.equipment_name = '';
+                                            equipment.brand = '';
+                                            equipment.model = '';
+                                            equipment.serial_number = '';
+                                            equipment.end_user = '';
+                                        }"
+                                    >
+                                        Change Item
+                                    </Button>
                                 </div>
+
+                                <!-- State 2: Search Input -->
+                                <div v-else class="relative space-y-2">
+                                    <Label :for="`eq_name_${index}`" class="text-sm font-medium text-slate-700">Search Equipment</Label>
+                                    <Input
+                                        :id="`eq_name_${index}`"
+                                        v-model="equipment.equipment_name"
+                                        placeholder="Type equipment name, brand, or serial number..."
+                                        class="h-11 border-orange-200 bg-white text-sm focus:border-orange-400 focus:ring-orange-400"
+                                        required
+                                        autocomplete="off"
+                                        @input="handleEquipmentSearch(index)"
+                                        @focus="activeSearchIndex = index; handleEquipmentSearch(index)"
+                                        @blur="setTimeout(() => activeSearchIndex = null, 200)"
+                                    />
+                                    
+                                    <!-- Autocomplete Results Dropdown -->
+                                    <ul
+                                        v-if="activeSearchIndex === index && searchResults.length > 0"
+                                        class="absolute top-[4.5rem] z-20 w-full max-h-60 overflow-y-auto rounded-md border border-orange-200 bg-white py-1 shadow-xl"
+                                    >
+                                        <li
+                                            v-for="res in searchResults"
+                                            :key="res.id"
+                                            @mousedown.prevent="selectEquipment(index, res)"
+                                            class="group cursor-pointer px-4 py-3 border-b border-orange-50 last:border-none hover:bg-orange-50 transition-colors"
+                                        >
+                                            <div class="text-sm font-bold text-slate-800">{{ res.description }}</div>
+                                            <div class="mt-1 text-xs text-slate-500 flex gap-3">
+                                                <span v-if="res.brand">{{ res.brand }}</span>
+                                                <span v-if="res.model">- {{ res.model }}</span> 
+                                                <span v-if="res.serial_number" class="text-orange-600/80 font-medium">SN: {{ res.serial_number }}</span>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+
                             </div>
                         </div>
                     </section>
+
+                   
 
                     <!-- Request Detail -->
                     <section class="mt-6 space-y-4 border-t border-orange-300 pt-6">
