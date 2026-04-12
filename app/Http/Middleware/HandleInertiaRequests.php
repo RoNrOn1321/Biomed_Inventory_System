@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -50,7 +49,7 @@ class HandleInertiaRequests extends Middleware
                         'id' => $user->id,
                         'name' => $user->name,
                         'email' => $user->email,
-                        'avatar' => $user->avatar ? Storage::url($user->avatar) : null,
+                        'avatar' => $user->avatar ? asset('storage/' . $user->avatar) : null,
                         'account_type' => $user->account_type,
                         'email_verified_at' => $user->email_verified_at,
                         'created_at' => $user->created_at,
