@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\DescEquAccessory;
+use App\Models\Equipment;
 use App\Models\JobRequest;
 use App\Models\Repair;
 use App\Models\RequestDetail;
@@ -112,6 +113,13 @@ class EndUserJobRequestService
                     'serial_number' => $eq['serial_number'],
                     'end_user' => $eq['end_user'],
                 ]);
+
+                // Auto-mark matching inventory equipment as Defective
+                if (!empty($eq['serial_number'])) {
+                    Equipment::where('serial_number', $eq['serial_number'])
+                        ->where('status', 'Functional')
+                        ->update(['status' => 'Defective']);
+                }
             }
             
             \App\Events\JobRequestCreated::dispatch('New job request created for ' . $jobR->equipment_name, $jobR->id);

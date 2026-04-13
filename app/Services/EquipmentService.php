@@ -103,6 +103,10 @@ class EquipmentService
             $query->where('status', $filters['status']);
         }
 
+        if (!empty($filters['location'])) {
+            $query->where('location', $filters['location']);
+        }
+
         return $query;
     }
 

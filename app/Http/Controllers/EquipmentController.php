@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Equipment;
 use App\Services\EquipmentService;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,6 +19,10 @@ class EquipmentController extends Controller
         $filters['year'] = $filters['year'] ?? now()->year;
         $filters['month'] = $filters['month'] ?? now()->format('m');
 
+        $user = $request->user();
+        $isEndUser = $user->account_type === 'End_User';
+        $viewAll = $request->boolean('viewAll', false);
+
         $queryFilters = $filters;
         if ($queryFilters['year'] === 'all') {
             unset($queryFilters['year']);
@@ -29,9 +34,17 @@ class EquipmentController extends Controller
             unset($queryFilters['status']);
         }
 
+        // End users see only their own equipment by default (matched by name in location)
+        if ($isEndUser && !$viewAll) {
+            $queryFilters['location'] = $user->name;
+        }
+
         return Inertia::render('Inventory', [
             'equipments' => $this->equipmentService->paginatedList($queryFilters),
             'filters' => $filters,
+            'users' => User::where('account_type', 'End_User')->orderBy('name')->get(['id', 'name'])->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])->all(),
+            'isEndUser' => $isEndUser,
+            'viewAll' => $viewAll,
         ]);
     }
 
@@ -63,8 +76,9 @@ class EquipmentController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'tag_number' => 'nullable|string|max:255',
             'pm_date_done' => 'nullable|date',
-            'status' => 'nullable|string|max:255',
         ]);
+
+        $validated['status'] = 'Functional';
 
         $this->equipmentService->create($validated);
 
@@ -81,7 +95,6 @@ class EquipmentController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'tag_number' => 'nullable|string|max:255',
             'pm_date_done' => 'nullable|date',
-            'status' => 'nullable|string|max:255',
         ]);
 
         $this->equipmentService->update($equipment, $validated);

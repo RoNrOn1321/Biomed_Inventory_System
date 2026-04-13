@@ -61,7 +61,7 @@ const visibleNavItems = computed(() => {
     const isEndUser = page.props.auth.user.account_type === 'End_User';
 
     if (isEndUser) {
-        return mainNavItems.filter((item) => ['/request-service', '/request-history'].includes(item.href));
+        return mainNavItems.filter((item) => ['/dashboard', '/request-service', '/request-history', '/Inventory'].includes(item.href));
     }
 
     return mainNavItems.filter((item) => {

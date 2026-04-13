@@ -11,8 +11,13 @@ class DashboardController extends Controller
 
     public function __invoke()
     {
-        if (request()->user()?->account_type === 'End_User') {
-            return redirect()->route('end-user.job-request.create');
+        $user = request()->user();
+
+        if ($user?->account_type === 'End_User') {
+            return Inertia::render('EndUserDashboard', [
+                'stats' => $this->dashboardService->getEndUserStats($user),
+                'recentRequests' => $this->dashboardService->getEndUserRecentRequests($user->id),
+            ]);
         }
 
         return Inertia::render('Dashboard', [

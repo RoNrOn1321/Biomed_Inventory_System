@@ -18,7 +18,37 @@ class DashboardService
         ];
     }
 
-  
+    public function getEndUserStats(User $user): array
+    {
+        return [
+            'my_equipment' => Equipment::where('location', $user->name)->count(),
+            'my_pending' => JobRequest::where('user_id', $user->id)->where('status', 'Pending')->count(),
+            'my_in_progress' => JobRequest::where('user_id', $user->id)->whereIn('status', ['Accepted', 'In Progress'])->count(),
+            'my_completed' => JobRequest::where('user_id', $user->id)->where('status', 'Completed')->count(),
+        ];
+    }
+
+    public function getEndUserRecentRequests(int $userId, int $limit = 5): array
+    {
+        return JobRequest::where('user_id', $userId)
+            ->with('acceptedBy:id,name')
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get()
+            ->map(fn (JobRequest $j) => [
+                'id' => $j->id,
+                'control_no' => $j->control_no,
+                'equipment_name' => $j->equipment_name,
+                'status' => $j->status,
+                'priority' => $j->priority,
+                'requested_at' => $j->requested_at
+                    ? $j->requested_at->toIso8601String()
+                    : $j->created_at->toIso8601String(),
+                'accepted_by' => $j->acceptedBy?->name,
+            ])
+            ->all();
+    }
+
     public function getRecentPendingRequests(int $limit = 5): array
     {
         return JobRequest::query()

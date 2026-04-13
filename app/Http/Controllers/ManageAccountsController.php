@@ -67,8 +67,7 @@ class ManageAccountsController extends Controller
 
     public function updatePassword(Request $request, User $user): RedirectResponse
     {
-        $this->ensureAdmin($request);
-        $this->ensureTechnician($user);
+        $this->ensureAdminOrModerator($request);
 
         $validated = $request->validate([
             'password' => ['required', 'confirmed', Rules\Password::defaults()],

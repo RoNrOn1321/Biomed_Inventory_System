@@ -9,6 +9,20 @@ import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { Plus, Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
+const toastVisible = ref(false);
+const toastMessage = ref('');
+const toastType = ref<'success' | 'error'>('success');
+let toastTimeout: ReturnType<typeof setTimeout>;
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    toastMessage.value = message;
+    toastType.value = type;
+    toastVisible.value = true;
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        toastVisible.value = false;
+    }, 3500);
+};
+
 interface ManagedUser extends Pick<User, 'id' | 'name' | 'email' | 'account_type' | 'avatar'> {
     created_at: string | null;
 }
@@ -107,7 +121,7 @@ const updateAccountType = (userId: number, event: Event) => {
     );
 };
 
-const canManageTechnician = (user: ManagedUser) => isAdmin.value && user.account_type === 'Biomed_Technician';
+const canManageTechnician = (user: ManagedUser) => canManageAccounts.value && user.id !== currentUserId.value;
 
 const openPasswordDialog = (user: ManagedUser) => {
     selectedTechnician.value = user;
@@ -135,6 +149,10 @@ const submitPasswordUpdate = () => {
 };
 
 const openDeleteDialog = (user: ManagedUser) => {
+    if (!isAdmin.value) {
+        showToast('Only Admins can delete accounts.', 'error');
+        return;
+    }
     selectedTechnician.value = user;
     deleteDialogOpen.value = true;
 };
@@ -278,7 +296,10 @@ const initials = (name: string) =>
                                     <th v-if="isAdmin" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
                                         Update Type
                                     </th>
-                                    <th v-if="isAdmin" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
+                                    <th
+                                        v-if="canManageAccounts"
+                                        class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white"
+                                    >
                                         Technician Actions
                                     </th>
                                 </tr>
@@ -322,18 +343,18 @@ const initials = (name: string) =>
                                             </option>
                                         </select>
                                     </td>
-                                    <td v-if="isAdmin" class="px-6 py-4">
+                                    <td v-if="canManageAccounts" class="px-6 py-4">
                                         <div v-if="canManageTechnician(user)" class="flex flex-wrap gap-2">
                                             <Button type="button" class="bg-blue-600 text-white hover:bg-blue-700" @click="openPasswordDialog(user)">
                                                 Change password
                                             </Button>
                                             <Button type="button" variant="destructive" @click="openDeleteDialog(user)">Delete</Button>
                                         </div>
-                                        <p v-else class="text-sm text-slate-400">Technician-only action</p>
+                                        <p v-else class="text-sm text-slate-400">Cannot edit own account</p>
                                     </td>
                                 </tr>
                                 <tr v-if="filteredUsers.length === 0">
-                                    <td :colspan="isAdmin ? 6 : 4" class="px-6 py-10 text-center text-sm text-slate-500">
+                                    <td :colspan="isAdmin ? 6 : canManageAccounts ? 5 : 4" class="px-6 py-10 text-center text-sm text-slate-500">
                                         No accounts found for the selected role.
                                     </td>
                                 </tr>
@@ -522,11 +543,62 @@ const initials = (name: string) =>
                                     Cancel
                                 </Button>
                             </DialogClose>
-                            <Button type="submit" variant="destructive" :disabled="deleteForm.processing">Delete technician</Button>
+                            <Button type="submit" variant="destructive" :disabled="deleteForm.processing">Delete account</Button>
                         </DialogFooter>
                     </div>
                 </form>
             </DialogContent>
         </Dialog>
+
+        <!-- Toast notification -->
+        <transition name="toast">
+            <div
+                v-if="toastVisible"
+                class="fixed right-6 top-6 z-50 flex items-center gap-3 rounded-xl px-5 py-3 text-sm font-medium text-white shadow-lg"
+                :class="toastType === 'error' ? 'bg-red-600' : 'bg-gray-900'"
+            >
+                <svg v-if="toastType === 'error'" class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                    />
+                </svg>
+                <svg v-else class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                {{ toastMessage }}
+            </div>
+        </transition>
     </AppLayout>
 </template>
+
+<style>
+.toast-enter-active {
+    animation: toastIn 0.3s ease-out;
+}
+.toast-leave-active {
+    animation: toastOut 0.2s ease-in forwards;
+}
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@keyframes toastOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+}
+</style>

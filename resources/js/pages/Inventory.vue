@@ -61,6 +61,9 @@ const props = defineProps<{
         search?: string;
         status?: string;
     };
+    users: { id: number; name: string }[];
+    isEndUser: boolean;
+    viewAll: boolean;
 }>();
 
 const page = usePage<SharedData>();
@@ -104,7 +107,6 @@ const addItemForm = useForm({
     serial_number: '',
     tag_number: '',
     pm_date_done: todayDate,
-    status: 'Functional',
 });
 
 const editItemForm = useForm({
@@ -116,12 +118,20 @@ const editItemForm = useForm({
     serial_number: '',
     tag_number: '',
     pm_date_done: '',
-    status: '',
 });
 
 const deleteForm = useForm({
     id: 0,
 });
+
+const addModalVisible = ref(false);
+const editModalVisible = ref(false);
+const deleteModalVisible = ref(false);
+const exportPanelVisible = ref(false);
+
+const toastVisible = ref(false);
+const toastMessage = ref('');
+let toastTimeout: ReturnType<typeof setTimeout>;
 
 const search = ref(props.filters.search || '');
 const filterYear = ref(props.filters.year || currentYear);
@@ -150,6 +160,7 @@ watch([search, filterYear, filterMonth, filterStatus], () => {
                 year: filterYear.value || undefined,
                 month: filterMonth.value || undefined,
                 status: filterStatus.value !== 'all' ? filterStatus.value : undefined,
+                viewAll: props.viewAll || undefined,
             },
             { preserveState: true, preserveScroll: true, replace: true },
         );
@@ -161,6 +172,20 @@ const clearFilters = () => {
     filterYear.value = currentYear;
     filterMonth.value = currentMonth;
     filterStatus.value = 'all';
+};
+
+const toggleViewAll = () => {
+    router.get(
+        '/Inventory',
+        {
+            search: search.value || undefined,
+            year: filterYear.value || undefined,
+            month: filterMonth.value || undefined,
+            status: filterStatus.value !== 'all' ? filterStatus.value : undefined,
+            viewAll: !props.viewAll || undefined,
+        },
+        { preserveState: false },
+    );
 };
 
 const toggleExportPanel = () => {
@@ -214,7 +239,6 @@ const openEditModal = (item: Equipment) => {
     editItemForm.serial_number = item.serial_number || '';
     editItemForm.tag_number = item.tag_number || '';
     editItemForm.pm_date_done = item.pm_date_done || '';
-    editItemForm.status = item.status || '';
     editModalVisible.value = true;
 };
 
@@ -594,6 +618,7 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                         </div>
 
                         <button
+                            v-if="!isEndUser"
                             type="button"
                             @click="openAddModal"
                             class="inline-flex items-center gap-x-2 rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
@@ -604,6 +629,29 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                             Add Equipment
                         </button>
                     </div>
+                </div>
+
+                <!-- End User view banner -->
+                <div v-if="isEndUser" class="mb-4 flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 px-4 py-3">
+                    <div class="flex items-center gap-2 text-sm text-orange-800">
+                        <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                        </svg>
+                        <span v-if="!viewAll">Showing <strong>your assigned equipment</strong> only.</span>
+                        <span v-else>Showing <strong>all equipment</strong> in inventory.</span>
+                    </div>
+                    <button
+                        type="button"
+                        @click="toggleViewAll"
+                        class="rounded-md bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1"
+                    >
+                        {{ viewAll ? 'View My Equipment' : 'View All Equipment' }}
+                    </button>
                 </div>
 
                 <div class="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-gray-900/5">
@@ -636,12 +684,12 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                 </th>
                                 <th scope="col" class="border-r border-orange-400 px-3 py-3.5 text-left text-sm font-semibold text-white">Status</th>
 
-                                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-white">Actions</th>
+                                <th v-if="!isEndUser" scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white">
                             <tr v-if="equipments.data.length === 0">
-                                <td colspan="11" class="border-b border-gray-200 py-12 text-center text-sm text-gray-500">
+                                <td :colspan="isEndUser ? 10 : 11" class="border-b border-gray-200 py-12 text-center text-sm text-gray-500">
                                     <svg
                                         class="mx-auto h-12 w-12 text-gray-400"
                                         fill="none"
@@ -713,7 +761,7 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                         >{{ item.status }}</span
                                     >
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-center text-sm font-medium">
+                                <td v-if="!isEndUser" class="whitespace-nowrap px-3 py-4 text-center text-sm font-medium">
                                     <div class="flex items-center justify-center gap-2">
                                         <button
                                             v-if="canSendToPreInspection && item.status === 'Defective'"
@@ -868,12 +916,13 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="mb-1 block text-sm font-medium text-gray-700">Location</label>
-                                <input
-                                    type="text"
+                                <select
                                     v-model="addItemForm.location"
-                                    placeholder="Enter location"
                                     class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                />
+                                >
+                                    <option value="">— Select user —</option>
+                                    <option v-for="user in users" :key="user.id" :value="user.name">{{ user.name }}</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="mb-1 block text-sm font-medium text-gray-700">Equipment Description</label>
@@ -928,17 +977,6 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                     v-model="addItemForm.pm_date_done"
                                     class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 />
-                            </div>
-                            <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Status</label>
-                                <select
-                                    v-model="addItemForm.status"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                >
-                                    <option value="Functional">Functional</option>
-                                    <option value="Defective">Defective</option>
-                                    <option value="Unserviceable">Unserviceable</option>
-                                </select>
                             </div>
                         </div>
                         <div class="flex gap-3 border-t pt-4">
@@ -1047,17 +1085,6 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                     class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 />
                             </div>
-                            <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Status</label>
-                                <select
-                                    v-model="editItemForm.status"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                >
-                                    <option value="Functional">Functional</option>
-                                    <option value="Defective">Defective</option>
-                                    <option value="Unserviceable">Unserviceable</option>
-                                </select>
-                            </div>
                         </div>
                         <div class="flex gap-3 border-t pt-4">
                             <button
@@ -1097,7 +1124,7 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                     <div class="flex flex-1 overflow-hidden">
                         <!-- Left: File list -->
                         <div class="flex w-72 flex-shrink-0 flex-col border-r bg-gray-50">
-                            <div class="border-b p-4">
+                            <div v-if="!isEndUser" class="border-b p-4">
                                 <label
                                     class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-600 to-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:from-orange-700 hover:to-amber-700"
                                 >
@@ -1159,6 +1186,7 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                             </svg>
                                         </a>
                                         <button
+                                            v-if="!isEndUser"
                                             @click.stop="deleteDocument(doc)"
                                             class="rounded p-1 text-gray-500 hover:bg-red-100 hover:text-red-600"
                                             title="Delete"
@@ -1219,7 +1247,7 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                     <div class="flex flex-1 overflow-hidden">
                         <!-- Left: File list with calibration history -->
                         <div class="flex w-80 flex-shrink-0 flex-col border-r bg-gray-50">
-                            <div class="border-b p-4">
+                            <div v-if="!isEndUser" class="border-b p-4">
                                 <label
                                     class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-600 to-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:from-orange-700 hover:to-amber-700"
                                 >
@@ -1344,6 +1372,7 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                                 </svg>
                                             </a>
                                             <button
+                                                v-if="!isEndUser"
                                                 @click.stop="deleteCalibrationFile(file)"
                                                 class="rounded p-1 text-gray-500 hover:bg-red-100 hover:text-red-600"
                                                 title="Delete"
