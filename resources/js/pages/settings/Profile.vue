@@ -31,11 +31,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const page = usePage<SharedData>();
 const user = computed(() => page.props.auth.user as User);
+const isEndUser = computed(() => user.value.account_type === 'End_User');
 const uploadedPreviewUrl = ref<string | null>(null);
 
 const form = useForm({
     name: user.value.name,
     email: user.value.email,
+    department: user.value.department ?? '',
     avatar: null as File | null,
 });
 
@@ -132,7 +134,17 @@ onBeforeUnmount(() => {
                     <div class="grid gap-6 md:grid-cols-2">
                         <div class="grid gap-2">
                             <Label for="name">Name</Label>
-                            <Input id="name" class="mt-1 block w-full" v-model="form.name" required autocomplete="name" placeholder="Full name" />
+                            <Input
+                                id="name"
+                                class="mt-1 block w-full"
+                                v-model="form.name"
+                                :disabled="isEndUser"
+                                :class="isEndUser ? 'cursor-not-allowed bg-gray-50 text-gray-500' : ''"
+                                required
+                                autocomplete="name"
+                                placeholder="Full name"
+                            />
+                            <p v-if="isEndUser" class="text-xs text-gray-400">Name can only be changed by an administrator.</p>
                             <InputError class="mt-2" :message="form.errors.name" />
                         </div>
 
@@ -149,6 +161,18 @@ onBeforeUnmount(() => {
                             />
                             <InputError class="mt-2" :message="form.errors.email" />
                         </div>
+                    </div>
+
+                    <div v-if="isEndUser" class="grid gap-2">
+                        <Label for="department">Department</Label>
+                        <Input
+                            id="department"
+                            class="mt-1 block w-full cursor-not-allowed bg-gray-50 text-gray-500"
+                            :model-value="user.department ?? ''"
+                            disabled
+                            placeholder="Not assigned"
+                        />
+                        <p class="text-xs text-gray-400">Department can only be changed by an administrator.</p>
                     </div>
 
                     <div v-if="mustVerifyEmail && !user.email_verified_at">
@@ -187,7 +211,7 @@ onBeforeUnmount(() => {
                 </form>
             </div>
 
-            <DeleteUser />
+            <DeleteUser v-if="!isEndUser" />
         </SettingsLayout>
     </AppLayout>
 </template>

@@ -25,6 +25,7 @@ const showToast = (message: string, type: 'success' | 'error' = 'success') => {
 
 interface ManagedUser extends Pick<User, 'id' | 'name' | 'email' | 'account_type' | 'avatar'> {
     created_at: string | null;
+    department: string | null;
 }
 
 const props = defineProps<{
@@ -52,7 +53,36 @@ const selectedRole = ref<(typeof roleFilters)[number]>('All');
 const search = ref('');
 const passwordDialogOpen = ref(false);
 const deleteDialogOpen = ref(false);
+const editDialogOpen = ref(false);
 const selectedTechnician = ref<ManagedUser | null>(null);
+
+const editForm = useForm({
+    name: '',
+    department: '',
+});
+
+const openEditDialog = (user: ManagedUser) => {
+    selectedTechnician.value = user;
+    editForm.name = user.name;
+    editForm.department = user.department ?? '';
+    editForm.clearErrors();
+    editDialogOpen.value = true;
+};
+
+const closeEditDialog = () => {
+    editDialogOpen.value = false;
+    editForm.reset();
+    editForm.clearErrors();
+    selectedTechnician.value = null;
+};
+
+const submitEdit = () => {
+    if (!selectedTechnician.value) return;
+    editForm.patch(`/manage-accounts/${selectedTechnician.value.id}/profile`, {
+        preserveScroll: true,
+        onSuccess: () => closeEditDialog(),
+    });
+};
 
 const createDialogOpen = ref(false);
 
@@ -62,6 +92,7 @@ const createForm = useForm({
     password: '',
     password_confirmation: '',
     account_type: 'End_User' as ManagedUser['account_type'],
+    department: '',
 });
 
 const openCreateDialog = () => {
@@ -291,6 +322,7 @@ const initials = (name: string) =>
                                 <tr>
                                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">User</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">Email</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">Department</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">Current Type</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">Created</th>
                                     <th v-if="isAdmin" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
@@ -321,6 +353,7 @@ const initials = (name: string) =>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-slate-600">{{ user.email }}</td>
+                                    <td class="px-6 py-4 text-sm text-slate-600">{{ user.department || '—' }}</td>
                                     <td class="px-6 py-4">
                                         <span
                                             :class="[
@@ -345,6 +378,13 @@ const initials = (name: string) =>
                                     </td>
                                     <td v-if="canManageAccounts" class="px-6 py-4">
                                         <div v-if="canManageTechnician(user)" class="flex flex-wrap gap-2">
+                                            <Button
+                                                v-if="isAdmin"
+                                                type="button"
+                                                class="bg-orange-500 text-white hover:bg-orange-600"
+                                                @click="openEditDialog(user)"
+                                                >Edit</Button
+                                            >
                                             <Button type="button" class="bg-blue-600 text-white hover:bg-blue-700" @click="openPasswordDialog(user)">
                                                 Change password
                                             </Button>
@@ -354,7 +394,7 @@ const initials = (name: string) =>
                                     </td>
                                 </tr>
                                 <tr v-if="filteredUsers.length === 0">
-                                    <td :colspan="isAdmin ? 6 : canManageAccounts ? 5 : 4" class="px-6 py-10 text-center text-sm text-slate-500">
+                                    <td :colspan="isAdmin ? 7 : canManageAccounts ? 6 : 5" class="px-6 py-10 text-center text-sm text-slate-500">
                                         No accounts found for the selected role.
                                     </td>
                                 </tr>
@@ -413,6 +453,20 @@ const initials = (name: string) =>
                                 <InputError :message="createForm.errors.account_type" />
                             </div>
 
+                            <div v-if="createForm.account_type === 'End_User'" class="grid gap-2">
+                                <label for="create_department" class="text-sm font-medium text-slate-700"
+                                    >Department <span class="font-normal text-gray-400">(optional)</span></label
+                                >
+                                <Input
+                                    id="create_department"
+                                    v-model="createForm.department"
+                                    type="text"
+                                    autocomplete="off"
+                                    placeholder="e.g. Radiology, ICU, Cardiology"
+                                />
+                                <InputError :message="createForm.errors.department" />
+                            </div>
+
                             <div class="grid gap-2">
                                 <label for="create_password" class="text-sm font-medium text-slate-700">Password</label>
                                 <Input
@@ -451,6 +505,58 @@ const initials = (name: string) =>
                             <Button type="submit" class="bg-orange-600 text-white hover:bg-orange-700" :disabled="createForm.processing">
                                 Create account
                             </Button>
+                        </DialogFooter>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog v-model:open="editDialogOpen">
+            <DialogContent class="overflow-hidden border-orange-200 bg-white p-0 shadow-2xl shadow-orange-200/60 sm:max-w-xl sm:rounded-2xl">
+                <form class="space-y-6" @submit.prevent="submitEdit">
+                    <DialogHeader class="space-y-3 border-b-4 border-orange-400 bg-gradient-to-r from-orange-50 via-white to-amber-100 px-6 py-5">
+                        <DialogTitle>Edit account</DialogTitle>
+                        <DialogDescription class="text-slate-600">
+                            Update the name and department for {{ selectedTechnician?.name || 'this user' }}.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div class="space-y-5 px-6 pb-6">
+                        <div class="grid gap-4">
+                            <div class="grid gap-2">
+                                <label for="edit_name" class="text-sm font-medium text-slate-700">Full name</label>
+                                <Input id="edit_name" v-model="editForm.name" type="text" autocomplete="off" placeholder="Full name" />
+                                <InputError :message="editForm.errors.name" />
+                            </div>
+                            <div class="grid gap-2">
+                                <label for="edit_department" class="text-sm font-medium text-slate-700"
+                                    >Department <span class="font-normal text-gray-400">(optional)</span></label
+                                >
+                                <Input
+                                    id="edit_department"
+                                    v-model="editForm.department"
+                                    type="text"
+                                    autocomplete="off"
+                                    placeholder="e.g. Radiology, ICU, Cardiology"
+                                />
+                                <InputError :message="editForm.errors.department" />
+                            </div>
+                        </div>
+
+                        <DialogFooter class="border-t border-orange-100 pt-5">
+                            <DialogClose as-child>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    class="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                    @click="closeEditDialog"
+                                >
+                                    Cancel
+                                </Button>
+                            </DialogClose>
+                            <Button type="submit" class="bg-orange-600 text-white hover:bg-orange-700" :disabled="editForm.processing"
+                                >Save changes</Button
+                            >
                         </DialogFooter>
                     </div>
                 </form>

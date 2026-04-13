@@ -33,6 +33,7 @@ export interface User {
     id: number;
     name: string;
     email: string;
+    department: string | null;
     avatar?: string;
     account_type: 'End_User' | 'Biomed_Technician' | 'Admin' | 'Moderator';
     email_verified_at: string | null;

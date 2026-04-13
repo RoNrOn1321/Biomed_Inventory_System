@@ -32,7 +32,11 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        $user->fill($request->safe()->only(['name', 'email']));
+        $fields = $user->account_type === 'End_User'
+            ? ['email']
+            : ['name', 'email', 'department'];
+
+        $user->fill($request->safe()->only($fields));
 
         if ($request->hasFile('avatar')) {
             if ($user->avatar) {

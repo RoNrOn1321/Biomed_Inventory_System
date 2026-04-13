@@ -38,6 +38,7 @@ class ManageAccountsController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'account_type' => ['required', $allowedTypes],
+            'department' => ['nullable', 'string', 'max:255'],
         ]);
 
         $user = $this->accountService->createUser(
@@ -45,6 +46,7 @@ class ManageAccountsController extends Controller
             $validated['email'],
             $validated['password'],
             $validated['account_type'],
+            $validated['department'] ?? null,
         );
 
         event(new Registered($user));
@@ -61,6 +63,20 @@ class ManageAccountsController extends Controller
         ]);
 
         $this->accountService->updateAccountType($user, $validated['account_type']);
+
+        return redirect()->back();
+    }
+
+    public function updateProfile(Request $request, User $user): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'department' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $this->accountService->updateProfile($user, $validated['name'], $validated['department'] ?? null);
 
         return redirect()->back();
     }

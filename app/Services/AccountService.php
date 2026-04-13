@@ -8,13 +8,14 @@ use Illuminate\Support\Facades\Storage;
 
 class AccountService
 {
-    public function createUser(string $name, string $email, string $password, string $accountType): User
+    public function createUser(string $name, string $email, string $password, string $accountType, ?string $department = null): User
     {
         return User::create([
             'name' => $name,
             'email' => $email,
             'password' => Hash::make($password),
             'account_type' => $accountType,
+            'department' => $department,
         ]);
     }
 
@@ -22,16 +23,22 @@ class AccountService
     {
         return User::query()
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'account_type', 'avatar', 'created_at'])
+            ->get(['id', 'name', 'email', 'account_type', 'avatar', 'department', 'created_at'])
             ->map(fn (User $user) => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'department' => $user->department,
                 'account_type' => $user->account_type,
                 'avatar' => $user->avatar ? asset('storage/' . $user->avatar) : null,
                 'created_at' => optional($user->created_at)->toDateString(),
             ])
             ->all();
+    }
+
+    public function updateProfile(User $user, string $name, ?string $department): void
+    {
+        $user->update(['name' => $name, 'department' => $department]);
     }
 
     public function updateAccountType(User $user, string $accountType): void

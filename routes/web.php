@@ -26,6 +26,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/manage-accounts', [App\Http\Controllers\ManageAccountsController::class, 'index'])->name('manage-accounts.index');
     Route::post('/manage-accounts', [App\Http\Controllers\ManageAccountsController::class, 'store'])->name('manage-accounts.store');
     Route::put('/manage-accounts/{user}', [App\Http\Controllers\ManageAccountsController::class, 'update'])->name('manage-accounts.update');
+    Route::patch('/manage-accounts/{user}/profile', [App\Http\Controllers\ManageAccountsController::class, 'updateProfile'])->name('manage-accounts.profile');
     Route::put('/manage-accounts/{user}/password', [App\Http\Controllers\ManageAccountsController::class, 'updatePassword'])->name('manage-accounts.password');
     Route::delete('/manage-accounts/{user}', [App\Http\Controllers\ManageAccountsController::class, 'destroy'])->name('manage-accounts.destroy');
 

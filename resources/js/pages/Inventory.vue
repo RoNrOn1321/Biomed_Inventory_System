@@ -1024,12 +1024,13 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                             </div>
                             <div>
                                 <label class="mb-1 block text-sm font-medium text-gray-700">Location</label>
-                                <input
-                                    type="text"
+                                <select
                                     v-model="editItemForm.location"
-                                    placeholder="Enter location"
                                     class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                />
+                                >
+                                    <option value="">— Select user —</option>
+                                    <option v-for="user in users" :key="user.id" :value="user.name">{{ user.name }}</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="mb-1 block text-sm font-medium text-gray-700">Equipment Description</label>
