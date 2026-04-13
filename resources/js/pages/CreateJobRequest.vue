@@ -6,9 +6,9 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
 import { CheckCircle2, FileText, Plus, Send, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
-import axios from 'axios';
 
 const page = usePage<SharedData>();
 
@@ -29,8 +29,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const form = useForm({
     requester_name: page.props.auth.user.name,
     date: new Date().toISOString().split('T')[0],
-    department: '',
-    department_other: '',
+    department: page.props.auth.user.department ?? '',
     location: '',
 
     equipments: [
@@ -49,7 +48,6 @@ const form = useForm({
     nature_of_work: '',
 });
 
-const departments = ['HOPSS', 'MEDICAL', 'NURSING', 'ALLIED HEALTH PROFESSIONAL SERVICE', 'FINANCE', 'Other'];
 const services = [
     'Repair',
     'Pre-Inspection',
@@ -127,14 +125,14 @@ let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 const handleEquipmentSearch = (index: number) => {
     const query = form.equipments[index].equipment_name;
     activeSearchIndex.value = index;
-    
+
     if (!query || query.length < 2) {
         searchResults.value = [];
         return;
     }
 
     if (searchTimeout) clearTimeout(searchTimeout);
-    
+
     // Debounce to avoid spamming the backend
     searchTimeout = setTimeout(async () => {
         try {
@@ -143,20 +141,20 @@ const handleEquipmentSearch = (index: number) => {
         } catch (e) {
             console.error('Failed to search inventory', e);
         }
-    }, 300); 
+    }, 300);
 };
 
 // --- Add function to select one of the equipment results ---
 const selectEquipment = (index: number, equipment: any) => {
     const item = form.equipments[index];
-    
+
     // Map backend attributes to frontend form payload
     item.equipment_name = equipment.description || '';
     item.brand = equipment.brand || '';
     item.model = equipment.model || '';
     item.serial_number = equipment.serial_number || '';
     item.location = equipment.location || ''; // Depending on what "end_user" maps to on DB
-    
+
     // Hide dropdown
     activeSearchIndex.value = null;
     searchResults.value = [];
@@ -227,25 +225,12 @@ const selectEquipment = (index: number, equipment: any) => {
                         </div>
 
                         <div class="grid gap-6 pt-2 md:grid-cols-2 lg:grid-cols-3">
-                            <div class="space-y-3 lg:col-span-2">
+                            <div class="space-y-2 lg:col-span-2">
                                 <Label>Requesting Department</Label>
-                                <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                                    <div v-for="dept in departments" :key="dept" class="flex items-center space-x-2">
-                                        <input
-                                            type="radio"
-                                            :id="dept"
-                                            :value="dept"
-                                            v-model="form.department"
-                                            class="border-orange-300 text-orange-600 focus:ring-orange-500"
-                                        />
-                                        <Label :for="dept" class="text-sm font-normal">{{ dept }}</Label>
-                                    </div>
-                                </div>
                                 <Input
-                                    v-if="form.department === 'Other'"
-                                    v-model="form.department_other"
-                                    placeholder="Specify other department..."
-                                    class="mt-2 border-orange-200 focus:border-orange-500"
+                                    :model-value="form.department || 'Not assigned'"
+                                    disabled
+                                    class="cursor-not-allowed border-orange-200 bg-gray-50 text-gray-500"
                                 />
                             </div>
                             <div class="space-y-2">
@@ -260,7 +245,7 @@ const selectEquipment = (index: number, equipment: any) => {
                         </div>
                     </section>
 
-                                                          <!-- Equipment Details -->
+                    <!-- Equipment Details -->
                     <section class="space-y-4 pt-4">
                         <div class="flex items-center justify-between border-b border-orange-200 pb-2">
                             <h2 class="inline-block rounded bg-orange-100 px-3 py-1 text-sm font-semibold text-orange-900">
@@ -280,7 +265,8 @@ const selectEquipment = (index: number, equipment: any) => {
                         <div class="space-y-4">
                             <!-- This is the loop where "index" comes from -->
                             <div
-                                v-for="(equipment, index) in form.equipments" :key="index"
+                                v-for="(equipment, index) in form.equipments"
+                                :key="index"
                                 class="relative rounded-lg border border-orange-100 bg-orange-50/30 p-4"
                             >
                                 <div class="absolute -right-2 -top-2" v-if="form.equipments.length > 1">
@@ -292,39 +278,52 @@ const selectEquipment = (index: number, equipment: any) => {
                                         <Trash2 class="h-3 w-3" />
                                     </button>
                                 </div>
-                                
+
                                 <!-- State 1: Equipment Selected -->
-                                <div v-if="equipment.serial_number || equipment.brand || equipment.model" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-md border border-orange-200 bg-white p-4 shadow-sm">
+                                <div
+                                    v-if="equipment.serial_number || equipment.brand || equipment.model"
+                                    class="flex flex-col justify-between gap-4 rounded-md border border-orange-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center"
+                                >
                                     <div class="space-y-1">
                                         <h3 class="font-bold text-slate-800">{{ equipment.equipment_name || 'Unnamed Equipment' }}</h3>
-                                        <div class="text-sm text-slate-600 flex flex-wrap gap-x-4 gap-y-1">
-                                            <span v-if="equipment.brand"><span class="font-semibold text-slate-500">Brand:</span> {{ equipment.brand }}</span>
-                                            <span v-if="equipment.model"><span class="font-semibold text-slate-500">Model:</span> {{ equipment.model }}</span>
-                                            <span v-if="equipment.serial_number"><span class="font-semibold text-slate-500">SN:</span> {{ equipment.serial_number }}</span>
-                                            <span v-if="equipment.location"><span class="font-semibold text-slate-500">Location:</span> {{ equipment.location }}</span>
-                                            <div class="mt-2 flex w-full flex-col sm:flex-row sm:items-center gap-2 sm:w-auto">
-                                                <Label  class="text-xs font-semibold text-slate-500 whitespace-nowrap">End User:</Label>
+                                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
+                                            <span v-if="equipment.brand"
+                                                ><span class="font-semibold text-slate-500">Brand:</span> {{ equipment.brand }}</span
+                                            >
+                                            <span v-if="equipment.model"
+                                                ><span class="font-semibold text-slate-500">Model:</span> {{ equipment.model }}</span
+                                            >
+                                            <span v-if="equipment.serial_number"
+                                                ><span class="font-semibold text-slate-500">SN:</span> {{ equipment.serial_number }}</span
+                                            >
+                                            <span v-if="equipment.location"
+                                                ><span class="font-semibold text-slate-500">Location:</span> {{ equipment.location }}</span
+                                            >
+                                            <div class="mt-2 flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                                                <Label class="whitespace-nowrap text-xs font-semibold text-slate-500">End User:</Label>
                                                 <Input
-                                                     v-model="equipment.end_user" 
+                                                    v-model="equipment.end_user"
                                                     placeholder="Enter end user"
-                                                    class="h-8 w-full sm:w-48 border-orange-200 bg-white text-xs focus:border-orange-400 focus:ring-orange-400" 
+                                                    class="h-8 w-full border-orange-200 bg-white text-xs focus:border-orange-400 focus:ring-orange-400 sm:w-48"
                                                     required
                                                 />
                                             </div>
                                         </div>
                                     </div>
-                                    <Button 
-                                        type="button" 
-                                        variant="outline" 
-                                        size="sm" 
-                                        class="shrink-0 text-orange-600 border-orange-200 hover:bg-orange-50"
-                                        @click="() => {
-                                            equipment.equipment_name = '';
-                                            equipment.brand = '';
-                                            equipment.model = '';
-                                            equipment.serial_number = '';
-                                            equipment.end_user = '';
-                                        }"
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        class="shrink-0 border-orange-200 text-orange-600 hover:bg-orange-50"
+                                        @click="
+                                            () => {
+                                                equipment.equipment_name = '';
+                                                equipment.brand = '';
+                                                equipment.model = '';
+                                                equipment.serial_number = '';
+                                                equipment.end_user = '';
+                                            }
+                                        "
                                     >
                                         Change Item
                                     </Button>
@@ -341,36 +340,38 @@ const selectEquipment = (index: number, equipment: any) => {
                                         required
                                         autocomplete="off"
                                         @input="handleEquipmentSearch(index)"
-                                        @focus="activeSearchIndex = index; handleEquipmentSearch(index)"
-                                        @blur="setTimeout(() => activeSearchIndex = null, 200)"
+                                        @focus="
+                                            activeSearchIndex = index;
+                                            handleEquipmentSearch(index);
+                                        "
+                                        @blur="setTimeout(() => (activeSearchIndex = null), 200)"
                                     />
-                                    
+
                                     <!-- Autocomplete Results Dropdown -->
                                     <ul
                                         v-if="activeSearchIndex === index && searchResults.length > 0"
-                                        class="absolute top-[4.5rem] z-20 w-full max-h-60 overflow-y-auto rounded-md border border-orange-200 bg-white py-1 shadow-xl"
+                                        class="absolute top-[4.5rem] z-20 max-h-60 w-full overflow-y-auto rounded-md border border-orange-200 bg-white py-1 shadow-xl"
                                     >
                                         <li
                                             v-for="res in searchResults"
                                             :key="res.id"
                                             @mousedown.prevent="selectEquipment(index, res)"
-                                            class="group cursor-pointer px-4 py-3 border-b border-orange-50 last:border-none hover:bg-orange-50 transition-colors"
+                                            class="group cursor-pointer border-b border-orange-50 px-4 py-3 transition-colors last:border-none hover:bg-orange-50"
                                         >
                                             <div class="text-sm font-bold text-slate-800">{{ res.description }}</div>
-                                            <div class="mt-1 text-xs text-slate-500 flex gap-3">
+                                            <div class="mt-1 flex gap-3 text-xs text-slate-500">
                                                 <span v-if="res.brand">{{ res.brand }}</span>
-                                                <span v-if="res.model">- {{ res.model }}</span> 
-                                                <span v-if="res.serial_number" class="text-orange-600/80 font-medium">SN: {{ res.serial_number }}</span>
+                                                <span v-if="res.model">- {{ res.model }}</span>
+                                                <span v-if="res.serial_number" class="font-medium text-orange-600/80"
+                                                    >SN: {{ res.serial_number }}</span
+                                                >
                                             </div>
                                         </li>
                                     </ul>
                                 </div>
-
                             </div>
                         </div>
                     </section>
-
-                   
 
                     <!-- Request Detail -->
                     <section class="mt-6 space-y-4 border-t border-orange-300 pt-6">

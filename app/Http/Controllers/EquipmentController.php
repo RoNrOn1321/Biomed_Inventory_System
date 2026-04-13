@@ -116,11 +116,16 @@ class EquipmentController extends Controller
             return response()->json([]);
         }
 
-        // Queries standard fields like description, brand, or serial_number
-        $equipments = \App\Models\Equipment::where('description', 'like', "%{$query}%")
-            ->orWhere('serial_number', 'like', "%{$query}%")
-            ->orWhere('tag_number', 'like', "%{$query}%")
-            ->orWhere('brand', 'like', "%{$query}%")
+        $user = $request->user();
+        $isEndUser = $user && $user->account_type === 'End_User';
+
+        $equipments = \App\Models\Equipment::where(function ($q) use ($query) {
+                $q->where('description', 'like', "%{$query}%")
+                  ->orWhere('serial_number', 'like', "%{$query}%")
+                  ->orWhere('tag_number', 'like', "%{$query}%")
+                  ->orWhere('brand', 'like', "%{$query}%");
+            })
+            ->when($isEndUser, fn($q) => $q->where('location', $user->name))
             ->limit(10)
             ->get();
 
