@@ -11,7 +11,10 @@ class EquipmentCalibrationController extends Controller
 {
     public function index($equipmentId)
     {
-        $files = EquipmentCalibration::where('equipment_id', $equipmentId)->get();
+        $files = EquipmentCalibration::where('equipment_id', $equipmentId)
+            ->orderBy('calibration_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
         return response()->json($files);
     }
 
@@ -23,19 +26,22 @@ class EquipmentCalibrationController extends Controller
         ]);
 
         $equipment = Equipment::findOrFail($equipmentId);
+        $calibrationDate = now()->toDateString();
 
         $uploaded = [];
         foreach ($request->file('files') as $file) {
             $path = $file->store("equipment_calibrations/{$equipmentId}", 'public');
             $record = EquipmentCalibration::create([
-                'equipment_id' => $equipmentId,
-                'file_name'    => $file->getClientOriginalName(),
-                'file_path'    => $path,
+                'equipment_id'     => $equipmentId,
+                'file_name'        => $file->getClientOriginalName(),
+                'file_path'        => $path,
+                'calibration_date' => $calibrationDate,
             ]);
             $uploaded[] = $record;
         }
 
-        $equipment->update(['calibration' => 'Calibrated']);
+        $equipment->load('latestCalibration');
+        $equipment->update(['calibration' => $equipment->computedCalibrationStatus()]);
 
         return response()->json($uploaded, 201);
     }
@@ -65,12 +71,12 @@ class EquipmentCalibrationController extends Controller
     {
         $record = EquipmentCalibration::findOrFail($fileId);
         Storage::disk('public')->delete($record->file_path);
+        $equipmentId = $record->equipment_id;
         $record->delete();
 
-        $remaining = EquipmentCalibration::where('equipment_id', $record->equipment_id)->count();
-        if ($remaining === 0) {
-            Equipment::where('id', $record->equipment_id)->update(['calibration' => 'Uncalibrated']);
-        }
+        $equipment = Equipment::findOrFail($equipmentId);
+        $equipment->load('latestCalibration');
+        $equipment->update(['calibration' => $equipment->computedCalibrationStatus()]);
 
         return response()->json(['message' => 'Deleted']);
     }

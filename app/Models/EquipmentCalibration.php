@@ -6,7 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class EquipmentCalibration extends Model
 {
-    protected $fillable = ['equipment_id', 'file_name', 'file_path'];
+    protected $fillable = ['equipment_id', 'file_name', 'file_path', 'calibration_date'];
+
+    protected $casts = [
+        'calibration_date' => 'date',
+    ];
 
     public function equipment()
     {

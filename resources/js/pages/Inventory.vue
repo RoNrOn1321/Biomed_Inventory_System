@@ -29,6 +29,7 @@ interface Equipment {
     tag_number: string | null;
     pm_date_done: string | null;
     calibration: string | null;
+    latest_calibration_date: string | null;
     status: string | null;
 }
 
@@ -257,6 +258,7 @@ interface EquipmentCalibrationFile {
     equipment_id: number;
     file_name: string;
     file_path: string;
+    calibration_date: string | null;
 }
 
 const calibrationModalVisible = ref(false);
@@ -272,6 +274,26 @@ const openCalibrationModal = async (item: Equipment) => {
     calibrationModalVisible.value = true;
     await fetchCalibrationFiles(item.id);
 };
+
+// Returns YYYY-MM-DD string for next calibration (1 year after latest calibration_date)
+const nextCalibrationDate = computed(() => {
+    const latestFile = calibrationFiles.value.find((f) => f.calibration_date);
+    if (!latestFile?.calibration_date) return null;
+    const d = new Date(latestFile.calibration_date);
+    d.setFullYear(d.getFullYear() + 1);
+    return d.toISOString().slice(0, 10);
+});
+
+// Groups files by calibration_date for history display
+const calibrationHistory = computed(() => {
+    const grouped: Record<string, EquipmentCalibrationFile[]> = {};
+    for (const file of calibrationFiles.value) {
+        const key = file.calibration_date ?? 'Unknown';
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(file);
+    }
+    return Object.entries(grouped).sort(([a], [b]) => b.localeCompare(a));
+});
 
 const closeCalibrationModal = () => {
     calibrationModalVisible.value = false;
@@ -305,7 +327,12 @@ const uploadCalibrationFiles = async (event: Event) => {
         uploadingCalibration.value = false;
         input.value = '';
     }
-    if (selectedEquipmentForCal.value) await fetchCalibrationFiles(selectedEquipmentForCal.value.id);
+    if (selectedEquipmentForCal.value) {
+        await fetchCalibrationFiles(selectedEquipmentForCal.value.id);
+        // refresh calibration status in the local reference so banner updates
+        const updated = props.equipments.data.find((e) => e.id === selectedEquipmentForCal.value?.id);
+        if (updated) selectedEquipmentForCal.value = { ...selectedEquipmentForCal.value, ...updated };
+    }
 };
 
 const deleteCalibrationFile = async (file: EquipmentCalibrationFile) => {
@@ -653,7 +680,11 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                 <td
                                     class="cursor-pointer whitespace-nowrap border-r border-gray-200 px-3 py-4 text-sm font-medium"
                                     :class="
-                                        item.calibration === 'Calibrated' ? 'text-green-600 hover:text-green-900' : 'text-red-500 hover:text-red-900'
+                                        item.calibration === 'Calibrated'
+                                            ? 'text-green-600 hover:text-green-900'
+                                            : item.calibration === 'Due for Calibration'
+                                              ? 'text-yellow-600 hover:text-yellow-900'
+                                              : 'text-red-500 hover:text-red-900'
                                     "
                                     @click="openCalibrationModal(item)"
                                 >
@@ -1164,8 +1195,8 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                     </div>
 
                     <div class="flex flex-1 overflow-hidden">
-                        <!-- Left: File list -->
-                        <div class="flex w-72 flex-shrink-0 flex-col border-r bg-gray-50">
+                        <!-- Left: File list with calibration history -->
+                        <div class="flex w-80 flex-shrink-0 flex-col border-r bg-gray-50">
                             <div class="border-b p-4">
                                 <label
                                     class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-600 to-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:from-orange-700 hover:to-amber-700"
@@ -1194,55 +1225,117 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                 </label>
                             </div>
 
+                            <!-- Next calibration & status banner -->
+                            <div v-if="nextCalibrationDate" class="border-b px-4 py-3 text-xs">
+                                <div class="mb-1 flex items-center gap-1.5 font-semibold uppercase tracking-wide text-gray-600">
+                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                        />
+                                    </svg>
+                                    Next Calibration Due
+                                </div>
+                                <p
+                                    :class="
+                                        selectedEquipmentForCal?.calibration === 'Uncalibrated'
+                                            ? 'font-bold text-red-600'
+                                            : selectedEquipmentForCal?.calibration === 'Due for Calibration'
+                                              ? 'font-bold text-yellow-600'
+                                              : 'font-semibold text-green-700'
+                                    "
+                                >
+                                    {{
+                                        new Date(nextCalibrationDate + 'T00:00:00').toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                        })
+                                    }}
+                                </p>
+                                <p
+                                    class="mt-0.5 font-medium"
+                                    :class="
+                                        selectedEquipmentForCal?.calibration === 'Uncalibrated'
+                                            ? 'text-red-500'
+                                            : selectedEquipmentForCal?.calibration === 'Due for Calibration'
+                                              ? 'text-yellow-500'
+                                              : 'text-green-600'
+                                    "
+                                >
+                                    {{ selectedEquipmentForCal?.calibration }}
+                                </p>
+                            </div>
+
                             <div class="flex-1 overflow-y-auto p-2">
                                 <p v-if="calibrationFiles.length === 0" class="px-2 py-4 text-center text-sm text-gray-400">
                                     No calibration files uploaded yet.
                                 </p>
-                                <div
-                                    v-for="file in calibrationFiles"
-                                    :key="file.id"
-                                    class="group mb-1 flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors"
-                                    :class="previewCalibrationFile?.id === file.id ? 'bg-orange-100 text-orange-800' : 'hover:bg-gray-100'"
-                                    @click="previewCalibrationFile = file"
-                                >
-                                    <svg class="h-4 w-4 flex-shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path
-                                            fill-rule="evenodd"
-                                            d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-                                            clip-rule="evenodd"
-                                        />
-                                    </svg>
-                                    <span class="flex-1 truncate text-sm">{{ file.file_name }}</span>
-                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100">
-                                        <a
-                                            :href="`/equipment/calibrations/${file.id}/download`"
-                                            @click.stop
-                                            class="rounded p-1 text-gray-500 hover:bg-blue-100 hover:text-blue-600"
-                                            title="Download"
-                                        >
-                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                                />
-                                            </svg>
-                                        </a>
-                                        <button
-                                            @click.stop="deleteCalibrationFile(file)"
-                                            class="rounded p-1 text-gray-500 hover:bg-red-100 hover:text-red-600"
-                                            title="Delete"
-                                        >
-                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                />
-                                            </svg>
-                                        </button>
+
+                                <!-- Grouped by calibration date (history) -->
+                                <div v-for="[date, files] in calibrationHistory" :key="date" class="mb-3">
+                                    <div class="mb-1 flex items-center gap-1.5 px-2">
+                                        <span class="text-xs font-semibold text-gray-500">
+                                            {{
+                                                date === 'Unknown'
+                                                    ? 'Unknown date'
+                                                    : new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+                                                          year: 'numeric',
+                                                          month: 'short',
+                                                          day: 'numeric',
+                                                      })
+                                            }}
+                                        </span>
+                                        <span class="h-px flex-1 bg-gray-200"></span>
+                                    </div>
+                                    <div
+                                        v-for="file in files"
+                                        :key="file.id"
+                                        class="group mb-1 flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors"
+                                        :class="previewCalibrationFile?.id === file.id ? 'bg-orange-100 text-orange-800' : 'hover:bg-gray-100'"
+                                        @click="previewCalibrationFile = file"
+                                    >
+                                        <svg class="h-4 w-4 flex-shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path
+                                                fill-rule="evenodd"
+                                                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                                                clip-rule="evenodd"
+                                            />
+                                        </svg>
+                                        <span class="flex-1 truncate text-sm">{{ file.file_name }}</span>
+                                        <div class="flex gap-1 opacity-0 group-hover:opacity-100">
+                                            <a
+                                                :href="`/equipment/calibrations/${file.id}/download`"
+                                                @click.stop
+                                                class="rounded p-1 text-gray-500 hover:bg-blue-100 hover:text-blue-600"
+                                                title="Download"
+                                            >
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                                    />
+                                                </svg>
+                                            </a>
+                                            <button
+                                                @click.stop="deleteCalibrationFile(file)"
+                                                class="rounded p-1 text-gray-500 hover:bg-red-100 hover:text-red-600"
+                                                title="Delete"
+                                            >
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -33,7 +33,15 @@ class EquipmentService
 
     public function paginatedList(array $filters, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->buildQuery($filters)->paginate($perPage)->withQueryString();
+        return $this->buildQuery($filters)
+            ->with('latestCalibration')
+            ->paginate($perPage)
+            ->withQueryString()
+            ->through(function (Equipment $equipment) {
+                $equipment->calibration = $equipment->computedCalibrationStatus();
+                $equipment->latest_calibration_date = optional($equipment->latestCalibration)->calibration_date?->toDateString();
+                return $equipment;
+            });
     }
 
     public function create(array $data): Equipment
