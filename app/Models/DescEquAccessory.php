@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DescEquAccessory extends Model
 {
@@ -14,4 +15,9 @@ class DescEquAccessory extends Model
         'serial_number',
         'end_user',
     ];
+
+    public function jobRequest(): BelongsTo
+    {
+        return $this->belongsTo(JobRequest::class);
+    }
 }

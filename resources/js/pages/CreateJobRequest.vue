@@ -355,10 +355,21 @@ const selectEquipment = (index: number, equipment: any) => {
                                         <li
                                             v-for="res in searchResults"
                                             :key="res.id"
-                                            @mousedown.prevent="selectEquipment(index, res)"
-                                            class="group cursor-pointer border-b border-orange-50 px-4 py-3 transition-colors last:border-none hover:bg-orange-50"
+                                            @mousedown.prevent="!res.in_queue && selectEquipment(index, res)"
+                                            :class="[
+                                                'group border-b border-orange-50 px-4 py-3 transition-colors last:border-none',
+                                                res.in_queue ? 'cursor-not-allowed bg-gray-50 opacity-70' : 'cursor-pointer hover:bg-orange-50',
+                                            ]"
                                         >
-                                            <div class="text-sm font-bold text-slate-800">{{ res.description }}</div>
+                                            <div class="flex items-center justify-between gap-2">
+                                                <span class="text-sm font-bold text-slate-800">{{ res.description }}</span>
+                                                <span
+                                                    v-if="res.in_queue"
+                                                    class="shrink-0 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-700"
+                                                >
+                                                    Already in queue
+                                                </span>
+                                            </div>
                                             <div class="mt-1 flex gap-3 text-xs text-slate-500">
                                                 <span v-if="res.brand">{{ res.brand }}</span>
                                                 <span v-if="res.model">- {{ res.model }}</span>

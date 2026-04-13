@@ -125,10 +125,25 @@ class EquipmentController extends Controller
                   ->orWhere('tag_number', 'like', "%{$query}%")
                   ->orWhere('brand', 'like', "%{$query}%");
             })
+            ->where('status', '!=', 'Condemned')
             ->when($isEndUser, fn($q) => $q->where('location', $user->name))
             ->limit(10)
             ->get();
 
-        return response()->json($equipments);
+        // Check which equipment serial numbers are already in an active job request queue
+        $activeSerials = \App\Models\DescEquAccessory::whereHas('jobRequest', function ($q) {
+                $q->whereIn('status', ['Pending', 'Accepted', 'In Progress']);
+            })
+            ->whereNotNull('serial_number')
+            ->pluck('serial_number')
+            ->toArray();
+
+        $result = $equipments->map(function ($eq) use ($activeSerials) {
+            $data = $eq->toArray();
+            $data['in_queue'] = $eq->serial_number && in_array($eq->serial_number, $activeSerials);
+            return $data;
+        });
+
+        return response()->json($result);
     }
 }
