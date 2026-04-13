@@ -69,8 +69,19 @@ const props = defineProps<{
 const page = usePage<SharedData>();
 const canSendToPreInspection = computed(() => ['Admin', 'Moderator', 'Biomed_Technician'].includes(page.props.auth.user.account_type));
 
+// Send to Pre Inspection confirm modal
+const sendPreInspectionModalVisible = ref(false);
+const pendingPreInspectionItem = ref<Equipment | null>(null);
+
 const sendToPreInspection = (item: Equipment) => {
-    if (!confirm(`Send "${item.description}" to Pre Inspection?`)) return;
+    pendingPreInspectionItem.value = item;
+    sendPreInspectionModalVisible.value = true;
+};
+
+const confirmSendToPreInspection = () => {
+    const item = pendingPreInspectionItem.value;
+    if (!item) return;
+    sendPreInspectionModalVisible.value = false;
     router.put(
         `/pre-inspection/${item.id}/send`,
         {},
@@ -79,6 +90,7 @@ const sendToPreInspection = (item: Equipment) => {
             onSuccess: () => showToast('Equipment sent to Pre Inspection.'),
         },
     );
+    pendingPreInspectionItem.value = null;
 };
 
 const showToast = (message: string) => {
@@ -1413,6 +1425,43 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                 type="application/pdf"
                             ></iframe>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send to Pre Inspection Confirm Modal -->
+            <div v-show="sendPreInspectionModalVisible" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+                <div class="modal-content mx-4 w-full max-w-md rounded-lg bg-white shadow-xl">
+                    <div class="flex items-center justify-between border-b bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
+                        <h2 class="text-xl font-bold text-white">Send to Pre Inspection</h2>
+                        <button
+                            @click="sendPreInspectionModalVisible = false"
+                            class="rounded-lg p-2 text-white transition-colors hover:bg-orange-700"
+                        >
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <p class="mb-2 text-gray-700">Are you sure you want to send this equipment to Pre Inspection?</p>
+                        <p class="text-sm font-semibold text-gray-800" v-if="pendingPreInspectionItem">{{ pendingPreInspectionItem.description }}</p>
+                    </div>
+                    <div class="flex gap-3 rounded-b-lg border-t bg-gray-50 px-6 py-4">
+                        <button
+                            type="button"
+                            @click="confirmSendToPreInspection"
+                            class="flex-1 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 font-semibold text-white transition-all duration-200 hover:from-orange-600 hover:to-orange-700"
+                        >
+                            Send
+                        </button>
+                        <button
+                            type="button"
+                            @click="sendPreInspectionModalVisible = false"
+                            class="flex-1 rounded-lg bg-gray-300 px-4 py-2 font-semibold text-gray-800 transition-colors hover:bg-gray-400"
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </div>
             </div>

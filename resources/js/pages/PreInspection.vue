@@ -48,6 +48,33 @@ const isModerator = computed(() => page.props.auth.user.account_type === 'Modera
 const isTechnician = computed(() => page.props.auth.user.account_type === 'Biomed_Technician');
 const canAct = computed(() => isAdmin.value || isModerator.value || isTechnician.value);
 
+// Error modal
+const errorModalVisible = ref(false);
+const errorMessage = ref('');
+const showErrorModal = (msg: string) => {
+    errorMessage.value = msg;
+    errorModalVisible.value = true;
+};
+
+// Generic confirm modal
+const confirmModalVisible = ref(false);
+const confirmModalTitle = ref('');
+const confirmModalMessage = ref('');
+const confirmModalAction = ref<(() => void) | null>(null);
+const confirmModalDanger = ref(false);
+
+const openConfirmModal = (title: string, message: string, action: () => void, danger = false) => {
+    confirmModalTitle.value = title;
+    confirmModalMessage.value = message;
+    confirmModalAction.value = action;
+    confirmModalDanger.value = danger;
+    confirmModalVisible.value = true;
+};
+const runConfirmAction = () => {
+    confirmModalVisible.value = false;
+    confirmModalAction.value?.();
+};
+
 // Toast
 const toastVisible = ref(false);
 const toastMessage = ref('');
@@ -73,27 +100,27 @@ watch(search, () => {
 
 // Restore to Functional
 const restoreEquipment = (item: Equipment) => {
-    if (!confirm(`Restore "${item.description}" to Functional?`)) return;
-    router.put(
-        `/pre-inspection/${item.id}/restore`,
-        {},
-        {
-            preserveScroll: true,
-            onSuccess: () => showToast(`${item.description} restored to Functional.`),
-        },
+    openConfirmModal('Restore Equipment', `Restore "${item.description}" to Functional?`, () =>
+        router.put(
+            `/pre-inspection/${item.id}/restore`,
+            {},
+            { preserveScroll: true, onSuccess: () => showToast(`${item.description} restored to Functional.`) },
+        ),
     );
 };
 
 // Condemn
 const condemnEquipment = (item: Equipment) => {
-    if (!confirm(`Mark "${item.description}" as Condemned? This cannot be undone.`)) return;
-    router.put(
-        `/pre-inspection/${item.id}/condemn`,
-        {},
-        {
-            preserveScroll: true,
-            onSuccess: () => showToast(`${item.description} has been condemned.`),
-        },
+    openConfirmModal(
+        'Condemn Equipment',
+        `Mark "${item.description}" as Condemned? This cannot be undone.`,
+        () =>
+            router.put(
+                `/pre-inspection/${item.id}/condemn`,
+                {},
+                { preserveScroll: true, onSuccess: () => showToast(`${item.description} has been condemned.`) },
+            ),
+        true,
     );
 };
 
@@ -143,7 +170,7 @@ const uploadDocuments = async (event: Event) => {
         });
         showToast('Documents uploaded successfully!');
     } catch (e: any) {
-        alert(`Upload error: ${e.response?.status}`);
+        showErrorModal(`Upload failed. Server responded with status ${e.response?.status ?? 'unknown'}.`);
     } finally {
         uploading.value = false;
         input.value = '';
@@ -152,11 +179,17 @@ const uploadDocuments = async (event: Event) => {
 };
 
 const deleteDocument = async (doc: EquipmentDocument) => {
-    if (!confirm(`Delete "${doc.file_name}"?`)) return;
-    await axios.delete(`/equipment/documents/${doc.id}`);
-    showToast('Document deleted.');
-    if (previewDocument.value?.id === doc.id) previewDocument.value = null;
-    if (selectedEquipment.value) await fetchDocuments(selectedEquipment.value.id);
+    openConfirmModal(
+        'Delete Document',
+        `Delete "${doc.file_name}"?`,
+        async () => {
+            await axios.delete(`/equipment/documents/${doc.id}`);
+            showToast('Document deleted.');
+            if (previewDocument.value?.id === doc.id) previewDocument.value = null;
+            if (selectedEquipment.value) await fetchDocuments(selectedEquipment.value.id);
+        },
+        true,
+    );
 };
 </script>
 
@@ -453,6 +486,79 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                 </div>
             </div>
         </div>
+        <!-- Confirm Modal -->
+        <Teleport to="body">
+            <div v-if="confirmModalVisible" class="fixed inset-0 z-50 flex items-center justify-center">
+                <div class="absolute inset-0 bg-black/40" @click="confirmModalVisible = false" />
+                <div class="relative z-10 mx-4 w-full max-w-md rounded-2xl bg-white shadow-xl ring-1 ring-gray-200">
+                    <div
+                        class="flex items-center justify-between rounded-t-2xl px-6 py-4"
+                        :class="confirmModalDanger ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'"
+                    >
+                        <h3 class="text-lg font-bold text-white">{{ confirmModalTitle }}</h3>
+                        <button @click="confirmModalVisible = false" class="rounded-lg p-1 text-white hover:bg-white/20">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="px-6 py-5">
+                        <p class="text-sm text-gray-700">{{ confirmModalMessage }}</p>
+                    </div>
+                    <div class="flex gap-3 rounded-b-2xl border-t bg-gray-50 px-6 py-4">
+                        <button
+                            type="button"
+                            @click="runConfirmAction"
+                            class="flex-1 rounded-lg px-4 py-2 font-semibold text-white transition-all duration-200"
+                            :class="
+                                confirmModalDanger
+                                    ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800'
+                                    : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
+                            "
+                        >
+                            Confirm
+                        </button>
+                        <button
+                            type="button"
+                            @click="confirmModalVisible = false"
+                            class="flex-1 rounded-lg bg-gray-300 px-4 py-2 font-semibold text-gray-800 hover:bg-gray-400"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Error Modal -->
+        <Teleport to="body">
+            <div v-if="errorModalVisible" class="fixed inset-0 z-50 flex items-center justify-center">
+                <!-- Backdrop -->
+                <div class="absolute inset-0 bg-black/40" @click="errorModalVisible = false" />
+                <!-- Dialog -->
+                <div class="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl ring-1 ring-gray-200">
+                    <div class="flex items-start gap-4">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                            <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-base font-semibold text-gray-900">Upload Error</h3>
+                            <p class="mt-1 text-sm text-gray-600">{{ errorMessage }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end">
+                        <button
+                            @click="errorModalVisible = false"
+                            class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        >
+                            OK
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AppLayout>
 </template>
 
