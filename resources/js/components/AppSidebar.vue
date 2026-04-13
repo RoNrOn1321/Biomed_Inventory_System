@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -61,8 +60,7 @@ const visibleNavItems = computed(() => {
     }
 
     return mainNavItems.filter((item) => {
-        if (item.href === '/request-service' || item.href === '/request-history') return false; // Hide from admin/tech to avoid clutter, or leave it?
-        if (item.href === '/manage-accounts' && page.props.auth.user.account_type !== 'Admin') return false;
+        if (item.href === '/request-service' || item.href === '/request-history') return false;
         return true;
     });
 });

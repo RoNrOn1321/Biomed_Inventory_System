@@ -27,8 +27,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 const page = usePage<SharedData>();
 const currentUserId = computed(() => Number(page.props.auth.user.id));
 const isAdmin = computed(() => page.props.auth.user.account_type === 'Admin');
-const accountTypes: ManagedUser['account_type'][] = ['End_User', 'Biomed_Technician', 'Admin'];
-const roleFilters = ['All', 'Biomed_Technician', 'End_User', 'Admin'] as const;
+const isModerator = computed(() => page.props.auth.user.account_type === 'Moderator');
+const canManageAccounts = computed(() => isAdmin.value || isModerator.value);
+const accountTypes: ManagedUser['account_type'][] = ['End_User', 'Biomed_Technician', 'Admin', 'Moderator'];
+const creatableAccountTypes = computed<ManagedUser['account_type'][]>(() =>
+    isAdmin.value ? ['End_User', 'Biomed_Technician', 'Admin', 'Moderator'] : ['End_User', 'Biomed_Technician', 'Moderator'],
+);
+const roleFilters = ['All', 'Biomed_Technician', 'End_User', 'Admin', 'Moderator'] as const;
 const selectedRole = ref<(typeof roleFilters)[number]>('All');
 const search = ref('');
 const passwordDialogOpen = ref(false);
@@ -156,6 +161,10 @@ const badgeClass = (accountType: ManagedUser['account_type']) => {
         return 'bg-red-100 text-red-700 border-red-200';
     }
 
+    if (accountType === 'Moderator') {
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+    }
+
     if (accountType === 'Biomed_Technician') {
         return 'bg-blue-100 text-blue-700 border-blue-200';
     }
@@ -187,7 +196,7 @@ const initials = (name: string) =>
             </section>
 
             <section class="mx-auto px-4 py-8 sm:px-6 lg:px-8">
-                <div class="mb-6 grid gap-4 md:grid-cols-3">
+                <div class="mb-6 grid gap-4 md:grid-cols-4">
                     <div class="rounded-2xl border border-orange-200 bg-orange-50 p-5 shadow-sm">
                         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-orange-700">Default Access</p>
                         <p class="mt-2 text-sm text-slate-700">New registrations start as <span class="font-semibold">End_User</span>.</p>
@@ -196,6 +205,12 @@ const initials = (name: string) =>
                         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Technical Role</p>
                         <p class="mt-2 text-sm text-slate-700">
                             Use <span class="font-semibold">Biomed_Technician</span> for users handling equipment workflows.
+                        </p>
+                    </div>
+                    <div class="rounded-2xl border border-purple-200 bg-purple-50 p-5 shadow-sm">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-purple-700">Moderator Role</p>
+                        <p class="mt-2 text-sm text-slate-700">
+                            Assign <span class="font-semibold">Moderator</span> to users who can view and create accounts but not manage roles.
                         </p>
                     </div>
                     <div class="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
@@ -260,8 +275,10 @@ const initials = (name: string) =>
                                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">Email</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">Current Type</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">Created</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">Update Type</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
+                                    <th v-if="isAdmin" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
+                                        Update Type
+                                    </th>
+                                    <th v-if="isAdmin" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
                                         Technician Actions
                                     </th>
                                 </tr>
@@ -294,11 +311,10 @@ const initials = (name: string) =>
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-slate-600">{{ user.created_at || 'N/A' }}</td>
-                                    <td class="px-6 py-4">
+                                    <td v-if="isAdmin" class="px-6 py-4">
                                         <select
                                             :value="user.account_type"
                                             class="rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
-                                            :disabled="!isAdmin"
                                             @change="updateAccountType(user.id, $event)"
                                         >
                                             <option v-for="accountType in accountTypes" :key="accountType" :value="accountType">
@@ -306,7 +322,7 @@ const initials = (name: string) =>
                                             </option>
                                         </select>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td v-if="isAdmin" class="px-6 py-4">
                                         <div v-if="canManageTechnician(user)" class="flex flex-wrap gap-2">
                                             <Button type="button" class="bg-blue-600 text-white hover:bg-blue-700" @click="openPasswordDialog(user)">
                                                 Change password
@@ -317,7 +333,7 @@ const initials = (name: string) =>
                                     </td>
                                 </tr>
                                 <tr v-if="filteredUsers.length === 0">
-                                    <td colspan="6" class="px-6 py-10 text-center text-sm text-slate-500">
+                                    <td :colspan="isAdmin ? 6 : 4" class="px-6 py-10 text-center text-sm text-slate-500">
                                         No accounts found for the selected role.
                                     </td>
                                 </tr>
@@ -329,7 +345,7 @@ const initials = (name: string) =>
         </div>
 
         <button
-            v-if="isAdmin"
+            v-if="canManageAccounts"
             type="button"
             class="fixed bottom-8 right-8 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-orange-600 text-white shadow-lg transition hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2"
             aria-label="Add account"
@@ -369,7 +385,9 @@ const initials = (name: string) =>
                                     v-model="createForm.account_type"
                                     class="h-10 w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
                                 >
-                                    <option v-for="accountType in accountTypes" :key="accountType" :value="accountType">{{ accountType }}</option>
+                                    <option v-for="accountType in creatableAccountTypes" :key="accountType" :value="accountType">
+                                        {{ accountType }}
+                                    </option>
                                 </select>
                                 <InputError :message="createForm.errors.account_type" />
                             </div>

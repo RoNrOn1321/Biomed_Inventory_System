@@ -34,7 +34,7 @@ export interface User {
     name: string;
     email: string;
     avatar?: string;
-    account_type: 'End_User' | 'Biomed_Technician' | 'Admin';
+    account_type: 'End_User' | 'Biomed_Technician' | 'Admin' | 'Moderator';
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;

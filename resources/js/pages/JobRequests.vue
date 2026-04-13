@@ -44,7 +44,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const page = usePage<SharedData>();
 const search = ref('');
 const statusFilter = ref<'All' | 'Pending' | 'Accepted' | 'Done'>('All');
-const canAcceptRequests = computed(() => ['Admin', 'Biomed_Technician'].includes(page.props.auth.user.account_type));
+const canAcceptRequests = computed(() => ['Admin', 'Biomed_Technician', 'Moderator'].includes(page.props.auth.user.account_type));
 
 const showToast = ref(false);
 const toastMessage = ref('');
@@ -400,7 +400,7 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
 
                                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                                     <div v-if="jobRequest.status === 'Pending'">
-                                        Once accepted, the request is assigned to the current logged-in technician or admin.
+                                        Once accepted, the request is assigned to the current logged-in technician, moderator, or admin.
                                     </div>
                                     <div v-else-if="jobRequest.status === 'Accepted'">
                                         Accepted on {{ formatDateTime(jobRequest.accepted_at) }}. Fill service docs to complete.

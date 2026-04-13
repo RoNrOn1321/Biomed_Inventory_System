@@ -56,6 +56,6 @@ class JobRequestController extends Controller
 
     private function ensureCanManageRequests(Request $request): void
     {
-        abort_unless(in_array($request->user()?->account_type, ['Biomed_Technician', 'Admin'], true), 403);
+        abort_unless(in_array($request->user()?->account_type, ['Biomed_Technician', 'Admin', 'Moderator'], true), 403);
     }
 }

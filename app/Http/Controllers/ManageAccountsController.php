@@ -17,7 +17,7 @@ class ManageAccountsController extends Controller
 
     public function index(Request $request): Response
     {
-        $this->ensureAdmin($request);
+        $this->ensureAdminOrModerator($request);
 
         return Inertia::render('ManageAccounts', [
             'users' => $this->accountService->listUsers(),
@@ -26,13 +26,18 @@ class ManageAccountsController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureAdminOrModerator($request);
+
+        $isModerator = $request->user()?->account_type === 'Moderator';
+        $allowedTypes = $isModerator
+            ? 'in:End_User,Biomed_Technician,Moderator'
+            : 'in:End_User,Biomed_Technician,Admin,Moderator';
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'account_type' => ['required', 'in:End_User,Biomed_Technician,Admin'],
+            'account_type' => ['required', $allowedTypes],
         ]);
 
         $user = $this->accountService->createUser(
@@ -52,7 +57,7 @@ class ManageAccountsController extends Controller
         $this->ensureAdmin($request);
 
         $validated = $request->validate([
-            'account_type' => ['required', 'in:End_User,Biomed_Technician,Admin'],
+            'account_type' => ['required', 'in:End_User,Biomed_Technician,Admin,Moderator'],
         ]);
 
         $this->accountService->updateAccountType($user, $validated['account_type']);
@@ -87,6 +92,11 @@ class ManageAccountsController extends Controller
     private function ensureAdmin(Request $request): void
     {
         abort_unless($request->user()?->account_type === 'Admin', 403);
+    }
+
+    private function ensureAdminOrModerator(Request $request): void
+    {
+        abort_unless(in_array($request->user()?->account_type, ['Admin', 'Moderator']), 403);
     }
 
     private function ensureTechnician(User $user): void
