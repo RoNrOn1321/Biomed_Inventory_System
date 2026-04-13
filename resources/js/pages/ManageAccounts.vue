@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData, type User } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Search } from 'lucide-vue-next';
+import { Plus, Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface ManagedUser extends Pick<User, 'id' | 'name' | 'email' | 'account_type' | 'avatar'> {
@@ -34,6 +34,35 @@ const search = ref('');
 const passwordDialogOpen = ref(false);
 const deleteDialogOpen = ref(false);
 const selectedTechnician = ref<ManagedUser | null>(null);
+
+const createDialogOpen = ref(false);
+
+const createForm = useForm({
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: '',
+    account_type: 'End_User' as ManagedUser['account_type'],
+});
+
+const openCreateDialog = () => {
+    createForm.reset();
+    createForm.clearErrors();
+    createDialogOpen.value = true;
+};
+
+const closeCreateDialog = () => {
+    createDialogOpen.value = false;
+    createForm.reset();
+    createForm.clearErrors();
+};
+
+const submitCreate = () => {
+    createForm.post('/manage-accounts', {
+        preserveScroll: true,
+        onSuccess: () => closeCreateDialog(),
+    });
+};
 
 const passwordForm = useForm({
     password: '',
@@ -298,6 +327,96 @@ const initials = (name: string) =>
                 </div>
             </section>
         </div>
+
+        <button
+            v-if="isAdmin"
+            type="button"
+            class="fixed bottom-8 right-8 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-orange-600 text-white shadow-lg transition hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2"
+            aria-label="Add account"
+            @click="openCreateDialog"
+        >
+            <Plus class="h-7 w-7" />
+        </button>
+
+        <Dialog v-model:open="createDialogOpen">
+            <DialogContent class="overflow-hidden border-orange-200 bg-white p-0 shadow-2xl shadow-orange-200/60 sm:max-w-xl sm:rounded-2xl">
+                <form class="space-y-6" @submit.prevent="submitCreate">
+                    <DialogHeader class="space-y-3 border-b-4 border-orange-400 bg-gradient-to-r from-orange-50 via-white to-amber-100 px-6 py-5">
+                        <DialogTitle>Create new account</DialogTitle>
+                        <DialogDescription class="text-slate-600">
+                            Add a new user account to the system. An account type must be assigned immediately.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div class="space-y-5 px-6 pb-6">
+                        <div class="grid gap-4">
+                            <div class="grid gap-2">
+                                <label for="create_name" class="text-sm font-medium text-slate-700">Full name</label>
+                                <Input id="create_name" v-model="createForm.name" type="text" autocomplete="off" placeholder="Full name" />
+                                <InputError :message="createForm.errors.name" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <label for="create_email" class="text-sm font-medium text-slate-700">Email address</label>
+                                <Input id="create_email" v-model="createForm.email" type="email" autocomplete="off" placeholder="email@example.com" />
+                                <InputError :message="createForm.errors.email" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <label for="create_account_type" class="text-sm font-medium text-slate-700">Account type</label>
+                                <select
+                                    id="create_account_type"
+                                    v-model="createForm.account_type"
+                                    class="h-10 w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                                >
+                                    <option v-for="accountType in accountTypes" :key="accountType" :value="accountType">{{ accountType }}</option>
+                                </select>
+                                <InputError :message="createForm.errors.account_type" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <label for="create_password" class="text-sm font-medium text-slate-700">Password</label>
+                                <Input
+                                    id="create_password"
+                                    v-model="createForm.password"
+                                    type="password"
+                                    autocomplete="new-password"
+                                    placeholder="Password"
+                                />
+                                <InputError :message="createForm.errors.password" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <label for="create_password_confirmation" class="text-sm font-medium text-slate-700">Confirm password</label>
+                                <Input
+                                    id="create_password_confirmation"
+                                    v-model="createForm.password_confirmation"
+                                    type="password"
+                                    autocomplete="new-password"
+                                    placeholder="Confirm password"
+                                />
+                            </div>
+                        </div>
+
+                        <DialogFooter class="border-t border-orange-100 pt-5">
+                            <DialogClose as-child>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    class="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                    @click="closeCreateDialog"
+                                >
+                                    Cancel
+                                </Button>
+                            </DialogClose>
+                            <Button type="submit" class="bg-orange-600 text-white hover:bg-orange-700" :disabled="createForm.processing">
+                                Create account
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
 
         <Dialog v-model:open="passwordDialogOpen">
             <DialogContent class="overflow-hidden border-orange-200 bg-white p-0 shadow-2xl shadow-orange-200/60 sm:max-w-xl sm:rounded-2xl">

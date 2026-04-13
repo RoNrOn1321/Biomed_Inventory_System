@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\AccountService;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules;
@@ -21,6 +22,29 @@ class ManageAccountsController extends Controller
         return Inertia::render('ManageAccounts', [
             'users' => $this->accountService->listUsers(),
         ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'account_type' => ['required', 'in:End_User,Biomed_Technician,Admin'],
+        ]);
+
+        $user = $this->accountService->createUser(
+            $validated['name'],
+            $validated['email'],
+            $validated['password'],
+            $validated['account_type'],
+        );
+
+        event(new Registered($user));
+
+        return redirect()->back();
     }
 
     public function update(Request $request, User $user): RedirectResponse

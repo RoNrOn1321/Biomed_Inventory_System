@@ -3,10 +3,21 @@
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
 class AccountService
 {
+    public function createUser(string $name, string $email, string $password, string $accountType): User
+    {
+        return User::create([
+            'name' => $name,
+            'email' => $email,
+            'password' => Hash::make($password),
+            'account_type' => $accountType,
+        ]);
+    }
+
     public function listUsers(): array
     {
         return User::query()
@@ -30,7 +41,7 @@ class AccountService
 
     public function updatePassword(User $user, string $password): void
     {
-        $user->update(['password' => $password]);
+        $user->update(['password' => Hash::make($password)]);
     }
 
     public function deleteUser(User $user): void
