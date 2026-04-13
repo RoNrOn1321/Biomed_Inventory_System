@@ -18,6 +18,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/request-service', [App\Http\Controllers\EndUserJobRequestController::class, 'store'])->name('end-user.job-request.store');
     Route::get('/request-history', [App\Http\Controllers\EndUserJobRequestController::class, 'history'])->name('end-user.job-request.history');
 
+    Route::get('/pre-inspection', [App\Http\Controllers\PreInspectionController::class, 'index'])->name('pre-inspection.index');
+    Route::put('/pre-inspection/{equipment}/send', [App\Http\Controllers\PreInspectionController::class, 'send'])->name('pre-inspection.send');
+    Route::put('/pre-inspection/{equipment}/restore', [App\Http\Controllers\PreInspectionController::class, 'restore'])->name('pre-inspection.restore');
+    Route::put('/pre-inspection/{equipment}/condemn', [App\Http\Controllers\PreInspectionController::class, 'condemn'])->name('pre-inspection.condemn');
+
     Route::get('/manage-accounts', [App\Http\Controllers\ManageAccountsController::class, 'index'])->name('manage-accounts.index');
     Route::post('/manage-accounts', [App\Http\Controllers\ManageAccountsController::class, 'store'])->name('manage-accounts.store');
     Route::put('/manage-accounts/{user}', [App\Http\Controllers\ManageAccountsController::class, 'update'])->name('manage-accounts.update');

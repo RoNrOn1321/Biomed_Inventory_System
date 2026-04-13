@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { computed, ref, watch } from 'vue';
 
@@ -63,14 +63,20 @@ const props = defineProps<{
     };
 }>();
 
-const addModalVisible = ref(false);
-const editModalVisible = ref(false);
-const deleteModalVisible = ref(false);
-const exportPanelVisible = ref(false);
+const page = usePage<SharedData>();
+const canSendToPreInspection = computed(() => ['Admin', 'Moderator', 'Biomed_Technician'].includes(page.props.auth.user.account_type));
 
-const toastVisible = ref(false);
-const toastMessage = ref('');
-let toastTimeout: ReturnType<typeof setTimeout>;
+const sendToPreInspection = (item: Equipment) => {
+    if (!confirm(`Send "${item.description}" to Pre Inspection?`)) return;
+    router.put(
+        `/pre-inspection/${item.id}/send`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => showToast('Equipment sent to Pre Inspection.'),
+        },
+    );
+};
 
 const showToast = (message: string) => {
     toastMessage.value = message;
@@ -709,6 +715,22 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-center text-sm font-medium">
                                     <div class="flex items-center justify-center gap-2">
+                                        <button
+                                            v-if="canSendToPreInspection && item.status === 'Defective'"
+                                            type="button"
+                                            @click="sendToPreInspection(item)"
+                                            class="rounded bg-purple-50 px-2 py-2 text-purple-600 hover:bg-purple-100 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            title="Send to Pre Inspection"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                                                />
+                                            </svg>
+                                        </button>
                                         <button
                                             type="button"
                                             @click="openEditModal(item)"
