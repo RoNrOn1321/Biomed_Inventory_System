@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { useEcho } from '@laravel/echo-vue';
-import { BellRing, CalendarDays, ClipboardCheck, Search, ShieldCheck, Wrench } from 'lucide-vue-next';
+import { BellRing, ClipboardCheck, Search, ShieldCheck, Wrench } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface JobRequestItem {
@@ -556,42 +556,22 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                     <div class="grid gap-4 md:grid-cols-2">
                         <div>
                             <label for="date_receive" class="mb-2 block text-sm font-medium text-slate-700">Date Received</label>
-                            <div class="relative">
-                                <input
-                                    id="date_receive"
-                                    v-model="serviceDocsForm.date_receive"
-                                    type="date"
-                                    readonly
-                                    class="absolute inset-0 h-full w-full cursor-default opacity-0"
-                                />
-                                <div
-                                    class="flex w-full items-center justify-between rounded-lg border border-orange-200 px-3 py-2 text-sm shadow-sm"
-                                    :class="serviceDocsForm.date_receive ? 'text-slate-700' : 'text-slate-400'"
-                                >
-                                    <span>{{ serviceDocsForm.date_receive ? formatFormDate(serviceDocsForm.date_receive) : 'Select a date' }}</span>
-                                    <CalendarDays class="h-4 w-4 shrink-0 text-orange-400" />
-                                </div>
-                            </div>
+                            <input
+                                id="date_receive"
+                                v-model="serviceDocsForm.date_receive"
+                                type="date"
+                                readonly
+                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none"
+                            />
                         </div>
                         <div>
                             <label for="date_performed" class="mb-2 block text-sm font-medium text-slate-700">Date Performed</label>
-                            <div class="relative">
-                                <input
-                                    id="date_performed"
-                                    v-model="serviceDocsForm.date_performed"
-                                    type="date"
-                                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                                />
-                                <div
-                                    class="flex w-full cursor-pointer items-center justify-between rounded-lg border border-orange-200 px-3 py-2 text-sm shadow-sm hover:border-orange-400 hover:ring-2 hover:ring-orange-100"
-                                    :class="serviceDocsForm.date_performed ? 'text-slate-700' : 'text-slate-400'"
-                                >
-                                    <span>{{
-                                        serviceDocsForm.date_performed ? formatFormDate(serviceDocsForm.date_performed) : 'Select a date'
-                                    }}</span>
-                                    <CalendarDays class="h-4 w-4 shrink-0 text-orange-400" />
-                                </div>
-                            </div>
+                            <input
+                                id="date_performed"
+                                v-model="serviceDocsForm.date_performed"
+                                type="date"
+                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                            />
                         </div>
                     </div>
 
@@ -609,21 +589,12 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                         </div>
                         <div>
                             <label for="date_finished" class="mb-2 block text-sm font-medium text-slate-700">Date Finished</label>
-                            <div class="relative">
-                                <input
-                                    id="date_finished"
-                                    v-model="serviceDocsForm.date_finished"
-                                    type="date"
-                                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                                />
-                                <div
-                                    class="flex w-full cursor-pointer items-center justify-between rounded-lg border border-orange-200 px-3 py-2 text-sm shadow-sm hover:border-orange-400 hover:ring-2 hover:ring-orange-100"
-                                    :class="serviceDocsForm.date_finished ? 'text-slate-700' : 'text-slate-400'"
-                                >
-                                    <span>{{ serviceDocsForm.date_finished ? formatFormDate(serviceDocsForm.date_finished) : 'Select a date' }}</span>
-                                    <CalendarDays class="h-4 w-4 shrink-0 text-orange-400" />
-                                </div>
-                            </div>
+                            <input
+                                id="date_finished"
+                                v-model="serviceDocsForm.date_finished"
+                                type="date"
+                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                            />
                         </div>
                     </div>
 
@@ -631,21 +602,12 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                     <div class="grid gap-4 md:grid-cols-2">
                         <div>
                             <label for="date_returned" class="mb-2 block text-sm font-medium text-slate-700">Date Returned</label>
-                            <div class="relative">
-                                <input
-                                    id="date_returned"
-                                    v-model="serviceDocsForm.date_returned"
-                                    type="date"
-                                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                                />
-                                <div
-                                    class="flex w-full cursor-pointer items-center justify-between rounded-lg border border-orange-200 px-3 py-2 text-sm shadow-sm hover:border-orange-400 hover:ring-2 hover:ring-orange-100"
-                                    :class="serviceDocsForm.date_returned ? 'text-slate-700' : 'text-slate-400'"
-                                >
-                                    <span>{{ serviceDocsForm.date_returned ? formatFormDate(serviceDocsForm.date_returned) : 'Select a date' }}</span>
-                                    <CalendarDays class="h-4 w-4 shrink-0 text-orange-400" />
-                                </div>
-                            </div>
+                            <input
+                                id="date_returned"
+                                v-model="serviceDocsForm.date_returned"
+                                type="date"
+                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                            />
                         </div>
                         <div>
                             <label for="receive_by_end_user" class="mb-2 block text-sm font-medium text-slate-700">Received By (End User)</label>
