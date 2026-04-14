@@ -8,11 +8,14 @@ use App\Models\User;
 
 class JobRequestService
 {
-    public function listAll(?int $assignedToUserId = null): array
+    public function listAll(?int $technicianUserId = null): array
     {
         return JobRequest::query()
             ->with(['acceptedBy:id,name', 'assignedTo:id,name', 'biomedicalServiceDoc', 'requestDetail', 'repair', 'descEquAccessories'])
-            ->when($assignedToUserId !== null, fn ($q) => $q->where('assigned_to', $assignedToUserId))
+            ->when($technicianUserId !== null, fn ($q) => $q->where(function ($q) use ($technicianUserId) {
+                $q->where('status', 'Pending')
+                  ->orWhere('assigned_to', $technicianUserId);
+            }))
             ->orderByRaw("case when status = 'Pending' then 0 when status = 'Accepted' then 1 else 2 end")
             ->orderByDesc('requested_at')
             ->get()
@@ -85,11 +88,21 @@ class JobRequestService
 
         $biomedicalServiceDoc = BiomedicalServiceDoc::create($docData);
 
-        // Auto-link to inventory equipment by matching name (case-insensitive)
+        // Auto-link to inventory equipment
         $equipmentId = $jobRequest->equipment_id;
         if (!$equipmentId) {
+            // Try exact description match first
             $matched = \App\Models\Equipment::whereRaw('LOWER(description) = ?', [strtolower($jobRequest->equipment_name)])->first();
             $equipmentId = $matched?->id;
+        }
+        if (!$equipmentId) {
+            // Fall back to serial_number match via DescEquAccessory
+            $jobRequest->loadMissing('descEquAccessories');
+            $serials = $jobRequest->descEquAccessories->pluck('serial_number')->filter()->values()->all();
+            if (!empty($serials)) {
+                $matched = \App\Models\Equipment::whereIn('serial_number', $serials)->first();
+                $equipmentId = $matched?->id;
+            }
         }
 
         $jobRequest->update([
@@ -99,5 +112,10 @@ class JobRequestService
             'equipment_id' => $equipmentId,
             'admin_approval' => 'Pending',
         ]);
+
+        // Immediately mark linked equipment as Unserviceable if deemed so by tech
+        if ($equipmentId && $repairOutcome === 'Unserviceable') {
+            \App\Models\Equipment::where('id', $equipmentId)->update(['status' => 'Unserviceable']);
+        }
     }
 }

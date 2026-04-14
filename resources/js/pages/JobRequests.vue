@@ -141,77 +141,117 @@ const pendingRepairJobRequestId = ref<number | null>(null);
 const selectedRepairCategory = ref<'Minor' | 'Major' | null>(null);
 const isSettingRepair = ref(false);
 
+// Track which job request ID is pending an accept API call (deferred until modal submit)
+const pendingAcceptId = ref<number | null>(null);
+
 const acceptRequest = (jobRequest: JobRequestItem) => {
-    router.put(
-        `/JobRequests/${jobRequest.id}/accept`,
-        {},
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                if (props.assignableUsers.length > 0) {
-                    pendingAssignJobRequestId.value = jobRequest.id;
-                    selectedAssigneeId.value = null;
-                    isAssignModalOpen.value = true;
-                } else {
-                    // No assignable users — go straight to repair category
-                    pendingRepairJobRequestId.value = jobRequest.id;
-                    selectedRepairCategory.value = null;
-                    isRepairModalOpen.value = true;
-                }
-            },
-        },
-    );
+    // Store the id — the actual accept API call is deferred until the modal is submitted
+    pendingAcceptId.value = jobRequest.id;
+    if (props.assignableUsers.length > 0) {
+        pendingAssignJobRequestId.value = jobRequest.id;
+        selectedAssigneeId.value = null;
+        isAssignModalOpen.value = true;
+    } else {
+        // No assignable users (technician) — go straight to repair category
+        pendingRepairJobRequestId.value = jobRequest.id;
+        selectedRepairCategory.value = null;
+        isRepairModalOpen.value = true;
+    }
 };
 
 const closeAssignModal = () => {
     isAssignModalOpen.value = false;
     pendingAssignJobRequestId.value = null;
     selectedAssigneeId.value = null;
+    pendingAcceptId.value = null;
 };
 
 const submitAssignment = () => {
     if (!pendingAssignJobRequestId.value || !selectedAssigneeId.value) return;
     isAssigning.value = true;
-    router.put(
-        `/JobRequests/${pendingAssignJobRequestId.value}/assign`,
-        { assigned_to: selectedAssigneeId.value },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                const jobRequestId = pendingAssignJobRequestId.value;
-                closeAssignModal();
-                // Open repair category modal after assigning
-                pendingRepairJobRequestId.value = jobRequestId;
-                selectedRepairCategory.value = null;
-                isRepairModalOpen.value = true;
+    const id = pendingAssignJobRequestId.value;
+    const assigneeId = selectedAssigneeId.value;
+
+    const doAssign = () => {
+        router.put(
+            `/JobRequests/${id}/assign`,
+            { assigned_to: assigneeId },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    closeAssignModal();
+                    pendingRepairJobRequestId.value = id;
+                    selectedRepairCategory.value = null;
+                    isRepairModalOpen.value = true;
+                },
+                onFinish: () => {
+                    isAssigning.value = false;
+                },
             },
-            onFinish: () => {
-                isAssigning.value = false;
+        );
+    };
+
+    if (pendingAcceptId.value === id) {
+        pendingAcceptId.value = null;
+        router.put(
+            `/JobRequests/${id}/accept`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => doAssign(),
+                onError: () => {
+                    isAssigning.value = false;
+                },
             },
-        },
-    );
+        );
+    } else {
+        doAssign();
+    }
 };
 
 const closeRepairModal = () => {
     isRepairModalOpen.value = false;
     pendingRepairJobRequestId.value = null;
     selectedRepairCategory.value = null;
+    pendingAcceptId.value = null;
 };
 
 const submitRepairCategory = () => {
     if (!pendingRepairJobRequestId.value || !selectedRepairCategory.value) return;
     isSettingRepair.value = true;
-    router.put(
-        `/JobRequests/${pendingRepairJobRequestId.value}/repair-category`,
-        { repair_category: selectedRepairCategory.value },
-        {
-            preserveScroll: true,
-            onSuccess: () => closeRepairModal(),
-            onFinish: () => {
-                isSettingRepair.value = false;
+    const id = pendingRepairJobRequestId.value;
+    const category = selectedRepairCategory.value;
+
+    const doSetRepair = () => {
+        router.put(
+            `/JobRequests/${id}/repair-category`,
+            { repair_category: category },
+            {
+                preserveScroll: true,
+                onSuccess: () => closeRepairModal(),
+                onFinish: () => {
+                    isSettingRepair.value = false;
+                },
             },
-        },
-    );
+        );
+    };
+
+    if (pendingAcceptId.value === id) {
+        pendingAcceptId.value = null;
+        router.put(
+            `/JobRequests/${id}/accept`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => doSetRepair(),
+                onError: () => {
+                    isSettingRepair.value = false;
+                },
+            },
+        );
+    } else {
+        doSetRepair();
+    }
 };
 
 const openServiceDocsDialog = (jobRequest: JobRequestItem) => {

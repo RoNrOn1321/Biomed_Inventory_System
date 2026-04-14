@@ -36,7 +36,7 @@ class PreInspectionController extends Controller
     public function send(Request $request, Equipment $equipment): RedirectResponse
     {
         $this->ensureAccess($request);
-        abort_unless($equipment->status === 'Defective', 422, 'Only defective equipment can be sent to Pre Inspection.');
+        abort_unless($equipment->status === 'Unserviceable', 422, 'Only unserviceable equipment can be sent to Pre Inspection.');
 
         $equipment->update(['status' => 'Pre Inspection']);
 

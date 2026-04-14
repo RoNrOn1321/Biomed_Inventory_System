@@ -16,12 +16,13 @@ class EquipmentController extends Controller
     public function index(Request $request)
     {
         $filters = $request->only(['year', 'month', 'search', 'status']);
-        $filters['year'] = $filters['year'] ?? now()->year;
-        $filters['month'] = $filters['month'] ?? now()->format('m');
 
         $user = $request->user();
         $isEndUser = $user->account_type === 'End_User';
         $viewAll = $request->boolean('viewAll', false);
+
+        $filters['year'] = $filters['year'] ?? ($isEndUser ? 'all' : now()->year);
+        $filters['month'] = $filters['month'] ?? ($isEndUser ? 'all' : now()->format('m'));
 
         $queryFilters = $filters;
         if ($queryFilters['year'] === 'all') {
@@ -149,8 +150,21 @@ class EquipmentController extends Controller
 
     public function jobHistory(Request $request, Equipment $equipment)
     {
+        // Collect job request IDs linked via serial_number through DescEquAccessory
+        $linkedViaSerial = [];
+        if ($equipment->serial_number) {
+            $linkedViaSerial = \App\Models\DescEquAccessory::where('serial_number', $equipment->serial_number)
+                ->pluck('job_request_id')
+                ->all();
+        }
+
         $history = \App\Models\JobRequest::query()
-            ->where('equipment_id', $equipment->id)
+            ->where(function ($q) use ($equipment, $linkedViaSerial) {
+                $q->where('equipment_id', $equipment->id);
+                if (!empty($linkedViaSerial)) {
+                    $q->orWhereIn('id', $linkedViaSerial);
+                }
+            })
             ->with(['assignedTo:id,name', 'acceptedBy:id,name', 'biomedicalServiceDoc'])
             ->orderByDesc('updated_at')
             ->get()

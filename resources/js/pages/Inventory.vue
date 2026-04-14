@@ -146,8 +146,8 @@ const toastMessage = ref('');
 let toastTimeout: ReturnType<typeof setTimeout>;
 
 const search = ref(props.filters.search || '');
-const filterYear = ref(props.filters.year || currentYear);
-const filterMonth = ref(props.filters.month || currentMonth);
+const filterYear = ref(props.filters.year || (props.isEndUser ? 'all' : currentYear));
+const filterMonth = ref(props.filters.month || (props.isEndUser ? 'all' : currentMonth));
 const filterStatus = ref(props.filters.status || 'all');
 const exportFormat = ref<'pdf' | 'excel' | 'word'>('pdf');
 const exportFrom = ref(defaultFromMonthValue);
@@ -181,8 +181,8 @@ watch([search, filterYear, filterMonth, filterStatus], () => {
 
 const clearFilters = () => {
     search.value = '';
-    filterYear.value = currentYear;
-    filterMonth.value = currentMonth;
+    filterYear.value = props.isEndUser ? 'all' : currentYear;
+    filterMonth.value = props.isEndUser ? 'all' : currentMonth;
     filterStatus.value = 'all';
 };
 
@@ -828,7 +828,7 @@ const formatHistoryDate = (val: string | null) => {
                                 <td v-if="!isEndUser" class="whitespace-nowrap px-3 py-4 text-center text-sm font-medium">
                                     <div class="flex items-center justify-center gap-2">
                                         <button
-                                            v-if="canSendToPreInspection && item.status === 'Defective'"
+                                            v-if="canSendToPreInspection && item.status === 'Unserviceable'"
                                             type="button"
                                             @click="sendToPreInspection(item)"
                                             class="rounded bg-purple-50 px-2 py-2 text-purple-600 hover:bg-purple-100 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"

@@ -19,10 +19,10 @@ class JobRequestController extends Controller
 
         $user = $request->user();
         $accountType = $user->account_type;
-        $filterByUser = $accountType === 'Biomed_Technician' ? $user->id : null;
+        $technicianUserId = $accountType === 'Biomed_Technician' ? $user->id : null;
 
         return Inertia::render('JobRequests', [
-            'jobRequests' => $this->jobRequestService->listAll($filterByUser),
+            'jobRequests' => $this->jobRequestService->listAll($technicianUserId),
             'assignableUsers' => in_array($accountType, ['Admin', 'Moderator'])
                 ? $this->jobRequestService->getAssignableUsers($accountType)
                 : [],
@@ -33,7 +33,13 @@ class JobRequestController extends Controller
     {
         $this->ensureCanManageRequests($request);
 
-        $this->jobRequestService->accept($jobRequest, $request->user()->id);
+        $user = $request->user();
+        $this->jobRequestService->accept($jobRequest, $user->id);
+
+        // Auto-assign to the technician who accepted
+        if ($user->account_type === 'Biomed_Technician') {
+            $this->jobRequestService->assignUser($jobRequest, $user->id);
+        }
 
         return redirect()->back();
     }
