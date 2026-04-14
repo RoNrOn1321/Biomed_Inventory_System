@@ -21,6 +21,7 @@ interface JobRequestItem {
     accepted_by: string | null;
     assigned_to_name: string | null;
     repair_category: string | null;
+    admin_approval: string | null;
     biomedicalServiceDoc?: any;
     request_type?: string[] | null;
     repair_type?: string | null;
@@ -493,6 +494,9 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                                     <div v-if="jobRequest.status === 'Pending'">
                                         Once accepted, the request is assigned to the current logged-in technician, moderator, or admin.
+                                    </div>
+                                    <div v-else-if="jobRequest.status === 'Accepted' && jobRequest.admin_approval === 'Rejected'">
+                                        <span class="font-semibold text-red-600">Admin rejected — please revise and resubmit.</span>
                                     </div>
                                     <div v-else-if="jobRequest.status === 'Accepted'">
                                         Accepted on {{ formatDateTime(jobRequest.accepted_at) }}. Fill service docs to complete.

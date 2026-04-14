@@ -29,6 +29,7 @@ class JobRequestService
                 'accepted_by' => $jobRequest->acceptedBy?->name,
                 'assigned_to_name' => $jobRequest->assignedTo?->name,
                 'repair_category' => $jobRequest->repair_category,
+                'admin_approval' => $jobRequest->admin_approval,
                 'biomedicalServiceDoc' => $jobRequest->biomedicalServiceDoc,
                 'request_type' => is_string($jobRequest->requestDetail?->request_type)
                     ? json_decode($jobRequest->requestDetail->request_type, true)

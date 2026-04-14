@@ -75,10 +75,13 @@ class ApprovalsService
     public function rejectJobRequest(JobRequest $jobRequest, int $adminId, ?string $notes): void
     {
         $jobRequest->update([
+            'status' => 'Accepted', // Send back to tech for revision
             'admin_approval' => 'Rejected',
             'admin_approval_notes' => $notes,
             'admin_reviewed_at' => now(),
             'admin_reviewed_by' => $adminId,
+            'bio_service_docs_id' => null, // Clear old service doc so tech can re-fill
+            'repair_outcome' => null,
         ]);
     }
 
