@@ -146,4 +146,32 @@ class EquipmentController extends Controller
 
         return response()->json($result);
     }
+
+    public function jobHistory(Request $request, Equipment $equipment)
+    {
+        $history = \App\Models\JobRequest::query()
+            ->where('equipment_id', $equipment->id)
+            ->with(['assignedTo:id,name', 'acceptedBy:id,name', 'biomedicalServiceDoc'])
+            ->orderByDesc('updated_at')
+            ->get()
+            ->map(fn (\App\Models\JobRequest $jr) => [
+                'id' => $jr->id,
+                'equipment_name' => $jr->equipment_name,
+                'requester_name' => $jr->requester_name,
+                'department' => $jr->department,
+                'issue_summary' => $jr->issue_summary,
+                'priority' => $jr->priority,
+                'status' => $jr->status,
+                'repair_category' => $jr->repair_category,
+                'repair_outcome' => $jr->repair_outcome,
+                'admin_approval' => $jr->admin_approval,
+                'assigned_to_name' => $jr->assignedTo?->name,
+                'accepted_by' => $jr->acceptedBy?->name,
+                'requested_at' => optional($jr->requested_at)->toIso8601String(),
+                'completed_at' => $jr->status === 'Done' ? optional($jr->updated_at)->toIso8601String() : null,
+                'remarks' => $jr->biomedicalServiceDoc?->remarks,
+            ]);
+
+        return response()->json($history);
+    }
 }

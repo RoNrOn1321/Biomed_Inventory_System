@@ -444,6 +444,56 @@ const deleteDocument = async (doc: EquipmentDocument) => {
     if (previewDocument.value?.id === doc.id) previewDocument.value = null;
     if (selectedEquipmentForDocs.value) await fetchDocuments(selectedEquipmentForDocs.value.id);
 };
+
+// Job history modal
+interface JobHistoryItem {
+    id: number;
+    equipment_name: string;
+    requester_name: string;
+    department: string | null;
+    issue_summary: string;
+    priority: string;
+    status: string;
+    repair_category: string | null;
+    repair_outcome: string | null;
+    admin_approval: string | null;
+    assigned_to_name: string | null;
+    accepted_by: string | null;
+    requested_at: string | null;
+    completed_at: string | null;
+    remarks: string | null;
+}
+
+const jobHistoryModalOpen = ref(false);
+const jobHistoryEquipment = ref<Equipment | null>(null);
+const jobHistoryItems = ref<JobHistoryItem[]>([]);
+const jobHistoryLoading = ref(false);
+const selectedHistoryId = ref<number | null>(null);
+
+const selectedHistoryItem = computed(() => jobHistoryItems.value.find((h) => h.id === selectedHistoryId.value) ?? null);
+
+const openJobHistoryModal = async (item: Equipment) => {
+    jobHistoryEquipment.value = item;
+    jobHistoryModalOpen.value = true;
+    jobHistoryLoading.value = true;
+    selectedHistoryId.value = null;
+    try {
+        const res = await axios.get(`/api/equipment/${item.id}/job-history`);
+        jobHistoryItems.value = res.data;
+        if (jobHistoryItems.value.length > 0) {
+            selectedHistoryId.value = jobHistoryItems.value[0].id;
+        }
+    } catch {
+        jobHistoryItems.value = [];
+    } finally {
+        jobHistoryLoading.value = false;
+    }
+};
+
+const formatHistoryDate = (val: string | null) => {
+    if (!val) return 'N/A';
+    return new Date(val).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+};
 </script>
 <style>
 @keyframes fadeIn {
@@ -757,21 +807,23 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                     {{ item.calibration || 'Uncalibrated' }}
                                 </td>
                                 <td class="whitespace-nowrap border-r border-gray-200 px-3 py-4 text-sm">
-                                    <span
-                                        v-if="item.status === 'Functional'"
-                                        class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20"
-                                        >{{ item.status }}</span
-                                    >
-                                    <span
-                                        v-else-if="item.status === 'Defective'"
-                                        class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10"
-                                        >{{ item.status }}</span
-                                    >
-                                    <span
-                                        v-else
-                                        class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20"
-                                        >{{ item.status }}</span
-                                    >
+                                    <button type="button" class="focus:outline-none" @click="openJobHistoryModal(item)">
+                                        <span
+                                            v-if="item.status === 'Functional'"
+                                            class="inline-flex cursor-pointer items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20 hover:bg-green-100"
+                                            >{{ item.status }}</span
+                                        >
+                                        <span
+                                            v-else-if="item.status === 'Defective'"
+                                            class="inline-flex cursor-pointer items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10 hover:bg-red-100"
+                                            >{{ item.status }}</span
+                                        >
+                                        <span
+                                            v-else
+                                            class="inline-flex cursor-pointer items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20 hover:bg-yellow-100"
+                                            >{{ item.status }}</span
+                                        >
+                                    </button>
                                 </td>
                                 <td v-if="!isEndUser" class="whitespace-nowrap px-3 py-4 text-center text-sm font-medium">
                                     <div class="flex items-center justify-center gap-2">
@@ -1615,6 +1667,182 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
+        </div>
+    </Teleport>
+
+    <!-- Job History Modal -->
+    <Teleport to="body">
+        <div
+            v-if="jobHistoryModalOpen"
+            class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            @click.self="jobHistoryModalOpen = false"
+        >
+            <div class="mx-4 flex h-[85vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                <!-- Left: date/title list -->
+                <div class="flex w-72 shrink-0 flex-col border-r border-gray-100 bg-slate-50">
+                    <div class="border-b border-gray-200 bg-gradient-to-r from-orange-50 to-amber-50 px-5 py-4">
+                        <p class="text-xs font-semibold uppercase tracking-widest text-orange-600">Job History</p>
+                        <h2 class="mt-0.5 text-base font-bold leading-snug text-slate-900">{{ jobHistoryEquipment?.description }}</h2>
+                        <p class="mt-1 text-xs text-slate-500">
+                            {{ jobHistoryEquipment?.status }} · {{ jobHistoryItems.length }} record{{ jobHistoryItems.length === 1 ? '' : 's' }}
+                        </p>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto">
+                        <div v-if="jobHistoryLoading" class="flex h-32 items-center justify-center text-sm text-slate-400">Loading…</div>
+                        <div
+                            v-else-if="jobHistoryItems.length === 0"
+                            class="flex h-32 items-center justify-center px-4 text-center text-sm text-slate-400"
+                        >
+                            No job requests linked to this equipment yet.
+                        </div>
+                        <button
+                            v-for="h in jobHistoryItems"
+                            :key="h.id"
+                            type="button"
+                            class="w-full border-b border-gray-100 px-5 py-4 text-left transition hover:bg-orange-50"
+                            :class="selectedHistoryId === h.id ? 'border-l-4 border-l-orange-500 bg-orange-100' : ''"
+                            @click="selectedHistoryId = h.id"
+                        >
+                            <p class="text-xs text-slate-400">{{ formatHistoryDate(h.requested_at) }}</p>
+                            <p class="mt-0.5 text-sm font-semibold leading-snug text-slate-800">{{ h.equipment_name }}</p>
+                            <div class="mt-1.5 flex flex-wrap gap-1">
+                                <span
+                                    :class="[
+                                        'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                                        h.status === 'Done'
+                                            ? 'bg-emerald-100 text-emerald-700'
+                                            : h.status === 'Accepted'
+                                              ? 'bg-blue-100 text-blue-700'
+                                              : 'bg-orange-100 text-orange-700',
+                                    ]"
+                                    >{{ h.status }}</span
+                                >
+                                <span
+                                    v-if="h.repair_outcome"
+                                    :class="[
+                                        'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                                        h.repair_outcome === 'Repaired' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600',
+                                    ]"
+                                    >{{ h.repair_outcome }}</span
+                                >
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: details panel -->
+                <div class="flex flex-1 flex-col overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                        <h3 class="text-lg font-bold text-slate-900">Request Details</h3>
+                        <button
+                            type="button"
+                            class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            @click="jobHistoryModalOpen = false"
+                        >
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto px-6 py-6">
+                        <div v-if="!selectedHistoryItem" class="flex h-full items-center justify-center text-sm text-slate-400">
+                            Select a record on the left to view details.
+                        </div>
+                        <div v-else class="space-y-5">
+                            <!-- Status badges row -->
+                            <div class="flex flex-wrap gap-2">
+                                <span
+                                    :class="[
+                                        'inline-flex rounded-full border px-3 py-1 text-xs font-semibold',
+                                        selectedHistoryItem.status === 'Done'
+                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                            : selectedHistoryItem.status === 'Accepted'
+                                              ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                              : 'border-orange-200 bg-orange-50 text-orange-700',
+                                    ]"
+                                    >{{ selectedHistoryItem.status }}</span
+                                >
+                                <span
+                                    v-if="selectedHistoryItem.repair_outcome"
+                                    :class="[
+                                        'inline-flex rounded-full border px-3 py-1 text-xs font-semibold',
+                                        selectedHistoryItem.repair_outcome === 'Repaired'
+                                            ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                                            : 'border-red-300 bg-red-50 text-red-700',
+                                    ]"
+                                    >{{ selectedHistoryItem.repair_outcome }}</span
+                                >
+                                <span
+                                    v-if="selectedHistoryItem.repair_category"
+                                    class="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
+                                    >{{ selectedHistoryItem.repair_category }} Repair</span
+                                >
+                                <span
+                                    v-if="selectedHistoryItem.admin_approval"
+                                    class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600"
+                                >
+                                    Admin: {{ selectedHistoryItem.admin_approval }}
+                                </span>
+                                <span
+                                    :class="[
+                                        'inline-flex rounded-full border px-3 py-1 text-xs font-semibold',
+                                        selectedHistoryItem.priority === 'Urgent'
+                                            ? 'border-red-200 bg-red-50 text-red-700'
+                                            : selectedHistoryItem.priority === 'High'
+                                              ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                              : selectedHistoryItem.priority === 'Medium'
+                                                ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                                : 'border-slate-200 bg-slate-50 text-slate-600',
+                                    ]"
+                                    >{{ selectedHistoryItem.priority }} priority</span
+                                >
+                            </div>
+
+                            <!-- Info grid -->
+                            <div class="grid gap-4 rounded-xl border border-orange-100 bg-orange-50/40 p-4 text-sm md:grid-cols-2">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase text-slate-400">Requester</p>
+                                    <p class="mt-0.5 font-medium text-slate-800">{{ selectedHistoryItem.requester_name }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold uppercase text-slate-400">Department</p>
+                                    <p class="mt-0.5 font-medium text-slate-800">{{ selectedHistoryItem.department || 'N/A' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold uppercase text-slate-400">Assigned To</p>
+                                    <p class="mt-0.5 font-medium text-slate-800">{{ selectedHistoryItem.assigned_to_name || 'Not assigned' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold uppercase text-slate-400">Accepted By</p>
+                                    <p class="mt-0.5 font-medium text-slate-800">{{ selectedHistoryItem.accepted_by || 'N/A' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold uppercase text-slate-400">Date Requested</p>
+                                    <p class="mt-0.5 font-medium text-slate-800">{{ formatHistoryDate(selectedHistoryItem.requested_at) }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold uppercase text-slate-400">Date Completed</p>
+                                    <p class="mt-0.5 font-medium text-slate-800">{{ formatHistoryDate(selectedHistoryItem.completed_at) }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Issue summary -->
+                            <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                                <p class="text-xs font-semibold uppercase text-slate-400">Issue Summary</p>
+                                <p class="mt-1.5 text-sm leading-6 text-slate-700">{{ selectedHistoryItem.issue_summary }}</p>
+                            </div>
+
+                            <!-- Remarks -->
+                            <div v-if="selectedHistoryItem.remarks" class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                                <p class="text-xs font-semibold uppercase text-slate-400">Remarks</p>
+                                <p class="mt-1.5 text-sm leading-6 text-slate-700">{{ selectedHistoryItem.remarks }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </Teleport>
 </template>

@@ -9,6 +9,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', App\Http\Controllers\DashboardController::class)->name('dashboard');
     Route::get('Inventory', [App\Http\Controllers\EquipmentController::class, 'index'])->name('inventory.index');
     Route::get('/api/equipments/search', [App\Http\Controllers\EquipmentController::class, 'search'])->name('equipment.search');
+    Route::get('/api/equipment/{equipment}/job-history', [App\Http\Controllers\EquipmentController::class, 'jobHistory'])->name('equipment.job-history');
 
     Route::get('/approvals', [App\Http\Controllers\ApprovalsController::class, 'index'])->name('approvals.index');
     Route::put('/approvals/job-requests/{jobRequest}/approve', [App\Http\Controllers\ApprovalsController::class, 'approveJobRequest'])->name('approvals.job-requests.approve');
