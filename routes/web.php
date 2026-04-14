@@ -12,6 +12,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/JobRequests', [App\Http\Controllers\JobRequestController::class, 'index'])->name('job-requests.index');
     Route::put('/JobRequests/{jobRequest}/accept', [App\Http\Controllers\JobRequestController::class, 'accept'])->name('job-requests.accept');
+    Route::put('/JobRequests/{jobRequest}/assign', [App\Http\Controllers\JobRequestController::class, 'assign'])->name('job-requests.assign');
     Route::post('/JobRequests/{jobRequest}/complete', [App\Http\Controllers\JobRequestController::class, 'complete'])->name('job-requests.complete');
 
     Route::get('/request-service', [App\Http\Controllers\EndUserJobRequestController::class, 'create'])->name('end-user.job-request.create');

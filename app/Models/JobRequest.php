@@ -31,6 +31,7 @@ class JobRequest extends Model
         'bio_service_docs_id',
         'request_complaints',
         'job_report',
+        'assigned_to',
     ];
 
     protected function casts(): array
@@ -44,6 +45,11 @@ class JobRequest extends Model
     public function acceptedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'accepted_by');
+    }
+
+    public function assignedTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 
     public function biomedicalServiceDoc()

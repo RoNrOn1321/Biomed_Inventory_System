@@ -4,13 +4,14 @@ namespace App\Services;
 
 use App\Models\JobRequest;
 use App\Models\BiomedicalServiceDoc;
+use App\Models\User;
 
 class JobRequestService
 {
     public function listAll(): array
     {
         return JobRequest::query()
-            ->with(['acceptedBy:id,name', 'biomedicalServiceDoc', 'requestDetail', 'repair', 'descEquAccessories'])
+            ->with(['acceptedBy:id,name', 'assignedTo:id,name', 'biomedicalServiceDoc', 'requestDetail', 'repair', 'descEquAccessories'])
             ->orderByRaw("case when status = 'Pending' then 0 when status = 'Accepted' then 1 else 2 end")
             ->orderByDesc('requested_at')
             ->get()
@@ -25,6 +26,7 @@ class JobRequestService
                 'requested_at' => optional($jobRequest->requested_at)->toIso8601String(),
                 'accepted_at' => optional($jobRequest->accepted_at)->toIso8601String(),
                 'accepted_by' => $jobRequest->acceptedBy?->name,
+                'assigned_to_name' => $jobRequest->assignedTo?->name,
                 'biomedicalServiceDoc' => $jobRequest->biomedicalServiceDoc,
                 'request_type' => is_string($jobRequest->requestDetail?->request_type)
                     ? json_decode($jobRequest->requestDetail->request_type, true)
@@ -40,6 +42,18 @@ class JobRequestService
             ->all();
     }
 
+    public function getAssignableUsers(string $currentUserType): array
+    {
+        $allowedTypes = $currentUserType === 'Admin'
+            ? ['Biomed_Technician', 'Moderator']
+            : ['Biomed_Technician'];
+
+        return User::whereIn('account_type', $allowedTypes)
+            ->orderBy('name')
+            ->get(['id', 'name', 'account_type'])
+            ->toArray();
+    }
+
     public function accept(JobRequest $jobRequest, int $userId): void
     {
         if ($jobRequest->status === 'Pending') {
@@ -49,6 +63,11 @@ class JobRequestService
                 'accepted_by' => $userId,
             ]);
         }
+    }
+
+    public function assignUser(JobRequest $jobRequest, int $userId): void
+    {
+        $jobRequest->update(['assigned_to' => $userId]);
     }
 
     public function complete(JobRequest $jobRequest, array $validated): void

@@ -19,6 +19,7 @@ interface JobRequestItem {
     requested_at: string | null;
     accepted_at: string | null;
     accepted_by: string | null;
+    assigned_to_name: string | null;
     biomedicalServiceDoc?: any;
     request_type?: string[] | null;
     repair_type?: string | null;
@@ -30,8 +31,15 @@ interface JobRequestItem {
     end_user?: string | null;
 }
 
+interface AssignableUser {
+    id: number;
+    name: string;
+    account_type: string;
+}
+
 const props = defineProps<{
     jobRequests: JobRequestItem[];
+    assignableUsers: AssignableUser[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -117,12 +125,49 @@ const pendingCount = computed(() => props.jobRequests.filter((jobRequest) => job
 const acceptedCount = computed(() => props.jobRequests.filter((jobRequest) => jobRequest.status === 'Accepted').length);
 const doneCount = computed(() => props.jobRequests.filter((jobRequest) => jobRequest.status === 'Done').length);
 
-const acceptRequest = (jobRequestId: number) => {
+// Assign modal state
+const isAssignModalOpen = ref(false);
+const pendingAssignJobRequestId = ref<number | null>(null);
+const selectedAssigneeId = ref<number | null>(null);
+const isAssigning = ref(false);
+
+const acceptRequest = (jobRequest: JobRequestItem) => {
     router.put(
-        `/JobRequests/${jobRequestId}/accept`,
+        `/JobRequests/${jobRequest.id}/accept`,
         {},
         {
             preserveScroll: true,
+            onSuccess: () => {
+                if (props.assignableUsers.length > 0) {
+                    pendingAssignJobRequestId.value = jobRequest.id;
+                    selectedAssigneeId.value = null;
+                    isAssignModalOpen.value = true;
+                }
+            },
+        },
+    );
+};
+
+const closeAssignModal = () => {
+    isAssignModalOpen.value = false;
+    pendingAssignJobRequestId.value = null;
+    selectedAssigneeId.value = null;
+};
+
+const submitAssignment = () => {
+    if (!pendingAssignJobRequestId.value || !selectedAssigneeId.value) return;
+    isAssigning.value = true;
+    router.put(
+        `/JobRequests/${pendingAssignJobRequestId.value}/assign`,
+        { assigned_to: selectedAssigneeId.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                closeAssignModal();
+            },
+            onFinish: () => {
+                isAssigning.value = false;
+            },
         },
     );
 };
@@ -133,7 +178,7 @@ const openServiceDocsDialog = (jobRequest: JobRequestItem) => {
     const acceptedDate = jobRequest.accepted_at ? jobRequest.accepted_at.slice(0, 10) : '';
     serviceDocsForm.value = {
         receive_by: authUserName,
-        performed_by: authUserName,
+        performed_by: jobRequest.assigned_to_name ?? authUserName,
         date_receive: acceptedDate,
         date_performed: '',
         estimated_no_days: '',
@@ -359,6 +404,10 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                         <p class="font-semibold text-slate-900">Accepted By</p>
                                         <p>{{ jobRequest.accepted_by || 'Waiting for acceptance' }}</p>
                                     </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-900">Assigned To</p>
+                                        <p>{{ jobRequest.assigned_to_name || 'Not assigned' }}</p>
+                                    </div>
                                 </div>
 
                                 <div class="rounded-xl border border-orange-100 bg-orange-50/60 p-4">
@@ -382,7 +431,7 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                     type="button"
                                     class="bg-orange-600 text-white hover:bg-orange-700"
                                     :disabled="!canAcceptRequests"
-                                    @click="acceptRequest(jobRequest.id)"
+                                    @click="acceptRequest(jobRequest)"
                                 >
                                     Accept Request
                                 </Button>
@@ -813,6 +862,47 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
 
                 <DialogFooter>
                     <Button type="button" variant="outline" @click="closeViewDialog">Close Form</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Assign Technician Modal -->
+        <Dialog :open="isAssignModalOpen" @update:open="isAssignModalOpen = $event">
+            <DialogContent class="max-w-md bg-white p-6 sm:rounded-2xl">
+                <DialogHeader>
+                    <DialogTitle class="text-xl font-bold text-slate-900">Assign a Respondent</DialogTitle>
+                </DialogHeader>
+
+                <div class="py-4">
+                    <p class="mb-4 text-sm text-slate-600">
+                        The job request has been accepted. Would you like to assign someone to respond to this request?
+                    </p>
+
+                    <div class="space-y-2">
+                        <label for="assignee" class="block text-sm font-medium text-slate-700">Select Respondent</label>
+                        <select
+                            id="assignee"
+                            v-model="selectedAssigneeId"
+                            class="h-11 w-full rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                        >
+                            <option :value="null" disabled>-- Choose a respondent --</option>
+                            <option v-for="user in assignableUsers" :key="user.id" :value="user.id">
+                                {{ user.name }} ({{ user.account_type.replace('_', ' ') }})
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <DialogFooter class="gap-2">
+                    <Button type="button" variant="outline" @click="closeAssignModal">Skip</Button>
+                    <Button
+                        type="button"
+                        class="bg-orange-600 text-white hover:bg-orange-700"
+                        :disabled="!selectedAssigneeId || isAssigning"
+                        @click="submitAssignment"
+                    >
+                        Assign Respondent
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

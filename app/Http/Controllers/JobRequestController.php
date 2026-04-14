@@ -17,8 +17,13 @@ class JobRequestController extends Controller
     {
         $this->ensureCanManageRequests($request);
 
+        $accountType = $request->user()->account_type;
+
         return Inertia::render('JobRequests', [
             'jobRequests' => $this->jobRequestService->listAll(),
+            'assignableUsers' => in_array($accountType, ['Admin', 'Moderator'])
+                ? $this->jobRequestService->getAssignableUsers($accountType)
+                : [],
         ]);
     }
 
@@ -27,6 +32,27 @@ class JobRequestController extends Controller
         $this->ensureCanManageRequests($request);
 
         $this->jobRequestService->accept($jobRequest, $request->user()->id);
+
+        return redirect()->back();
+    }
+
+    public function assign(Request $request, JobRequest $jobRequest): RedirectResponse
+    {
+        $this->ensureCanManageRequests($request);
+
+        $accountType = $request->user()?->account_type;
+        $allowedTypes = $accountType === 'Admin'
+            ? ['Biomed_Technician', 'Moderator']
+            : ['Biomed_Technician'];
+
+        $validated = $request->validate([
+            'assigned_to' => ['required', 'exists:users,id'],
+        ]);
+
+        $assignee = \App\Models\User::findOrFail($validated['assigned_to']);
+        abort_unless(in_array($assignee->account_type, $allowedTypes, true), 403, 'You cannot assign this user.');
+
+        $this->jobRequestService->assignUser($jobRequest, $validated['assigned_to']);
 
         return redirect()->back();
     }
