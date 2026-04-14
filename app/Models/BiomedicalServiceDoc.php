@@ -19,5 +19,6 @@ class BiomedicalServiceDoc extends Model
         'receive_by_end_user',
         'check_verify_by_id',
         'remarks',
+        'repair_category',
     ];
 }

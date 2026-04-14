@@ -32,6 +32,13 @@ class JobRequest extends Model
         'request_complaints',
         'job_report',
         'assigned_to',
+        'repair_category',
+        'repair_outcome',
+        'equipment_id',
+        'admin_approval',
+        'admin_approval_notes',
+        'admin_reviewed_at',
+        'admin_reviewed_by',
     ];
 
     protected function casts(): array
@@ -39,6 +46,7 @@ class JobRequest extends Model
         return [
             'requested_at' => 'datetime',
             'accepted_at' => 'datetime',
+            'admin_reviewed_at' => 'datetime',
         ];
     }
 
@@ -50,6 +58,16 @@ class JobRequest extends Model
     public function assignedTo(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function linkedEquipment(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Equipment::class, 'equipment_id');
+    }
+
+    public function adminReviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'admin_reviewed_by');
     }
 
     public function biomedicalServiceDoc()

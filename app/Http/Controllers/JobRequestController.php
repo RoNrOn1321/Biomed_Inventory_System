@@ -17,10 +17,12 @@ class JobRequestController extends Controller
     {
         $this->ensureCanManageRequests($request);
 
-        $accountType = $request->user()->account_type;
+        $user = $request->user();
+        $accountType = $user->account_type;
+        $filterByUser = $accountType === 'Biomed_Technician' ? $user->id : null;
 
         return Inertia::render('JobRequests', [
-            'jobRequests' => $this->jobRequestService->listAll(),
+            'jobRequests' => $this->jobRequestService->listAll($filterByUser),
             'assignableUsers' => in_array($accountType, ['Admin', 'Moderator'])
                 ? $this->jobRequestService->getAssignableUsers($accountType)
                 : [],
@@ -57,6 +59,19 @@ class JobRequestController extends Controller
         return redirect()->back();
     }
 
+    public function setRepairCategory(Request $request, JobRequest $jobRequest): RedirectResponse
+    {
+        $this->ensureCanManageRequests($request);
+
+        $validated = $request->validate([
+            'repair_category' => ['required', 'in:Minor,Major'],
+        ]);
+
+        $this->jobRequestService->setRepairCategory($jobRequest, $validated['repair_category']);
+
+        return redirect()->back();
+    }
+
     public function complete(Request $request, JobRequest $jobRequest): RedirectResponse
     {
         $this->ensureCanManageRequests($request);
@@ -73,6 +88,8 @@ class JobRequestController extends Controller
             'date_returned' => 'nullable|date',
             'receive_by_end_user' => 'nullable|string|max:255',
             'remarks' => 'nullable|string',
+            'repair_category' => 'nullable|in:Minor,Major',
+            'repair_outcome' => 'required|in:Repaired,Unserviceable',
         ]);
 
         $this->jobRequestService->complete($jobRequest, $validated);

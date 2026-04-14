@@ -14,6 +14,8 @@ class Equipment extends Model
         'location', 'description', 'brand', 'model',
         'serial_number', 'tag_number', 'pm_date_done',
         'calibration', 'status',
+        'admin_approval', 'pending_action', 'admin_approval_notes',
+        'admin_reviewed_at', 'admin_reviewed_by',
     ];
 
     public function calibrations()

@@ -10,9 +10,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('Inventory', [App\Http\Controllers\EquipmentController::class, 'index'])->name('inventory.index');
     Route::get('/api/equipments/search', [App\Http\Controllers\EquipmentController::class, 'search'])->name('equipment.search');
 
+    Route::get('/approvals', [App\Http\Controllers\ApprovalsController::class, 'index'])->name('approvals.index');
+    Route::put('/approvals/job-requests/{jobRequest}/approve', [App\Http\Controllers\ApprovalsController::class, 'approveJobRequest'])->name('approvals.job-requests.approve');
+    Route::put('/approvals/job-requests/{jobRequest}/reject', [App\Http\Controllers\ApprovalsController::class, 'rejectJobRequest'])->name('approvals.job-requests.reject');
+    Route::put('/approvals/equipment/{equipment}/approve', [App\Http\Controllers\ApprovalsController::class, 'approveEquipment'])->name('approvals.equipment.approve');
+    Route::put('/approvals/equipment/{equipment}/reject', [App\Http\Controllers\ApprovalsController::class, 'rejectEquipment'])->name('approvals.equipment.reject');
+
     Route::get('/JobRequests', [App\Http\Controllers\JobRequestController::class, 'index'])->name('job-requests.index');
     Route::put('/JobRequests/{jobRequest}/accept', [App\Http\Controllers\JobRequestController::class, 'accept'])->name('job-requests.accept');
     Route::put('/JobRequests/{jobRequest}/assign', [App\Http\Controllers\JobRequestController::class, 'assign'])->name('job-requests.assign');
+    Route::put('/JobRequests/{jobRequest}/repair-category', [App\Http\Controllers\JobRequestController::class, 'setRepairCategory'])->name('job-requests.repair-category');
     Route::post('/JobRequests/{jobRequest}/complete', [App\Http\Controllers\JobRequestController::class, 'complete'])->name('job-requests.complete');
 
     Route::get('/request-service', [App\Http\Controllers\EndUserJobRequestController::class, 'create'])->name('end-user.job-request.create');

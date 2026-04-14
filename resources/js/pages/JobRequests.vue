@@ -20,6 +20,7 @@ interface JobRequestItem {
     accepted_at: string | null;
     accepted_by: string | null;
     assigned_to_name: string | null;
+    repair_category: string | null;
     biomedicalServiceDoc?: any;
     request_type?: string[] | null;
     repair_type?: string | null;
@@ -95,6 +96,8 @@ const serviceDocsForm = ref({
     date_returned: '',
     receive_by_end_user: '',
     remarks: '',
+    repair_category: '',
+    repair_outcome: '' as 'Repaired' | 'Unserviceable' | '',
 });
 
 const filteredRequests = computed(() => {
@@ -131,6 +134,12 @@ const pendingAssignJobRequestId = ref<number | null>(null);
 const selectedAssigneeId = ref<number | null>(null);
 const isAssigning = ref(false);
 
+// Repair category modal state
+const isRepairModalOpen = ref(false);
+const pendingRepairJobRequestId = ref<number | null>(null);
+const selectedRepairCategory = ref<'Minor' | 'Major' | null>(null);
+const isSettingRepair = ref(false);
+
 const acceptRequest = (jobRequest: JobRequestItem) => {
     router.put(
         `/JobRequests/${jobRequest.id}/accept`,
@@ -142,6 +151,11 @@ const acceptRequest = (jobRequest: JobRequestItem) => {
                     pendingAssignJobRequestId.value = jobRequest.id;
                     selectedAssigneeId.value = null;
                     isAssignModalOpen.value = true;
+                } else {
+                    // No assignable users — go straight to repair category
+                    pendingRepairJobRequestId.value = jobRequest.id;
+                    selectedRepairCategory.value = null;
+                    isRepairModalOpen.value = true;
                 }
             },
         },
@@ -163,10 +177,37 @@ const submitAssignment = () => {
         {
             preserveScroll: true,
             onSuccess: () => {
+                const jobRequestId = pendingAssignJobRequestId.value;
                 closeAssignModal();
+                // Open repair category modal after assigning
+                pendingRepairJobRequestId.value = jobRequestId;
+                selectedRepairCategory.value = null;
+                isRepairModalOpen.value = true;
             },
             onFinish: () => {
                 isAssigning.value = false;
+            },
+        },
+    );
+};
+
+const closeRepairModal = () => {
+    isRepairModalOpen.value = false;
+    pendingRepairJobRequestId.value = null;
+    selectedRepairCategory.value = null;
+};
+
+const submitRepairCategory = () => {
+    if (!pendingRepairJobRequestId.value || !selectedRepairCategory.value) return;
+    isSettingRepair.value = true;
+    router.put(
+        `/JobRequests/${pendingRepairJobRequestId.value}/repair-category`,
+        { repair_category: selectedRepairCategory.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => closeRepairModal(),
+            onFinish: () => {
+                isSettingRepair.value = false;
             },
         },
     );
@@ -188,6 +229,8 @@ const openServiceDocsDialog = (jobRequest: JobRequestItem) => {
         date_returned: '',
         receive_by_end_user: jobRequest.requester_name ?? '',
         remarks: '',
+        repair_category: jobRequest.repair_category ?? '',
+        repair_outcome: '' as 'Repaired' | 'Unserviceable' | '',
     };
     isDocsDialogOpen.value = true;
 };
@@ -487,8 +530,9 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                 id="receive_by"
                                 v-model="serviceDocsForm.receive_by"
                                 type="text"
+                                readonly
                                 placeholder="Name who received"
-                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none"
                             />
                         </div>
                         <div>
@@ -497,8 +541,9 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                 id="performed_by"
                                 v-model="serviceDocsForm.performed_by"
                                 type="text"
+                                readonly
                                 placeholder="Technician name"
-                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none"
                             />
                         </div>
                     </div>
@@ -512,10 +557,11 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                     id="date_receive"
                                     v-model="serviceDocsForm.date_receive"
                                     type="date"
-                                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                                    readonly
+                                    class="absolute inset-0 h-full w-full cursor-default opacity-0"
                                 />
                                 <div
-                                    class="flex w-full cursor-pointer items-center justify-between rounded-lg border border-orange-200 px-3 py-2 text-sm shadow-sm hover:border-orange-400 hover:ring-2 hover:ring-orange-100"
+                                    class="flex w-full items-center justify-between rounded-lg border border-orange-200 px-3 py-2 text-sm shadow-sm"
                                     :class="serviceDocsForm.date_receive ? 'text-slate-700' : 'text-slate-400'"
                                 >
                                     <span>{{ serviceDocsForm.date_receive ? formatFormDate(serviceDocsForm.date_receive) : 'Select a date' }}</span>
@@ -558,52 +604,6 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                             />
                         </div>
                         <div>
-                            <label for="technician_date_received" class="mb-2 block text-sm font-medium text-slate-700">
-                                Technician Date Received
-                            </label>
-                            <div class="relative">
-                                <input
-                                    id="technician_date_received"
-                                    v-model="serviceDocsForm.technician_date_received"
-                                    type="date"
-                                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                                />
-                                <div
-                                    class="flex w-full cursor-pointer items-center justify-between rounded-lg border border-orange-200 px-3 py-2 text-sm shadow-sm hover:border-orange-400 hover:ring-2 hover:ring-orange-100"
-                                    :class="serviceDocsForm.technician_date_received ? 'text-slate-700' : 'text-slate-400'"
-                                >
-                                    <span>{{
-                                        serviceDocsForm.technician_date_received
-                                            ? formatFormDate(serviceDocsForm.technician_date_received)
-                                            : 'Select a date'
-                                    }}</span>
-                                    <CalendarDays class="h-4 w-4 shrink-0 text-orange-400" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Row 4 -->
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label for="date_started" class="mb-2 block text-sm font-medium text-slate-700">Date Started</label>
-                            <div class="relative">
-                                <input
-                                    id="date_started"
-                                    v-model="serviceDocsForm.date_started"
-                                    type="date"
-                                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                                />
-                                <div
-                                    class="flex w-full cursor-pointer items-center justify-between rounded-lg border border-orange-200 px-3 py-2 text-sm shadow-sm hover:border-orange-400 hover:ring-2 hover:ring-orange-100"
-                                    :class="serviceDocsForm.date_started ? 'text-slate-700' : 'text-slate-400'"
-                                >
-                                    <span>{{ serviceDocsForm.date_started ? formatFormDate(serviceDocsForm.date_started) : 'Select a date' }}</span>
-                                    <CalendarDays class="h-4 w-4 shrink-0 text-orange-400" />
-                                </div>
-                            </div>
-                        </div>
-                        <div>
                             <label for="date_finished" class="mb-2 block text-sm font-medium text-slate-700">Date Finished</label>
                             <div class="relative">
                                 <input
@@ -623,7 +623,7 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                         </div>
                     </div>
 
-                    <!-- Row 5 -->
+                    <!-- Row 4 -->
                     <div class="grid gap-4 md:grid-cols-2">
                         <div>
                             <label for="date_returned" class="mb-2 block text-sm font-medium text-slate-700">Date Returned</label>
@@ -649,9 +649,74 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                 id="receive_by_end_user"
                                 v-model="serviceDocsForm.receive_by_end_user"
                                 type="text"
+                                readonly
                                 placeholder="End user name"
-                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none"
                             />
+                        </div>
+                    </div>
+
+                    <!-- Repair Outcome -->
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700"> Repair Outcome <span class="text-red-500">*</span> </label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                :class="[
+                                    'rounded-xl border-2 px-4 py-5 text-center font-semibold transition',
+                                    serviceDocsForm.repair_outcome === 'Repaired'
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50',
+                                ]"
+                                @click="serviceDocsForm.repair_outcome = 'Repaired'"
+                            >
+                                ✔ Repaired
+                                <p class="mt-1 text-xs font-normal text-slate-500">Equipment is functional</p>
+                            </button>
+                            <button
+                                type="button"
+                                :class="[
+                                    'rounded-xl border-2 px-4 py-5 text-center font-semibold transition',
+                                    serviceDocsForm.repair_outcome === 'Unserviceable'
+                                        ? 'border-red-500 bg-red-50 text-red-800'
+                                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-red-300 hover:bg-red-50',
+                                ]"
+                                @click="serviceDocsForm.repair_outcome = 'Unserviceable'"
+                            >
+                                ✘ Unserviceable
+                                <p class="mt-1 text-xs font-normal text-slate-500">Beyond repair</p>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Repair Category -->
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">Repair Category</label>
+                        <div class="flex gap-3">
+                            <button
+                                type="button"
+                                disabled
+                                :class="[
+                                    'flex-1 cursor-not-allowed rounded-lg border px-4 py-2 text-sm font-semibold opacity-75',
+                                    serviceDocsForm.repair_category === 'Minor'
+                                        ? 'border-blue-400 bg-blue-100 text-blue-800'
+                                        : 'border-slate-200 bg-slate-50 text-slate-400',
+                                ]"
+                            >
+                                Minor Repair
+                            </button>
+                            <button
+                                type="button"
+                                disabled
+                                :class="[
+                                    'flex-1 cursor-not-allowed rounded-lg border px-4 py-2 text-sm font-semibold opacity-75',
+                                    serviceDocsForm.repair_category === 'Major'
+                                        ? 'border-orange-400 bg-orange-100 text-orange-800'
+                                        : 'border-slate-200 bg-slate-50 text-slate-400',
+                                ]"
+                            >
+                                Major Repair
+                            </button>
                         </div>
                     </div>
 
@@ -670,8 +735,8 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
 
                 <DialogFooter>
                     <Button type="button" variant="outline" @click="closeServiceDocsDialog">Cancel</Button>
-                    <Button type="button" class="bg-emerald-600 text-white hover:bg-emerald-700" @click="submitServiceDocs">
-                        Complete Service & Save Docs
+                    <Button type="button" class="bg-orange-600 text-white hover:bg-orange-700" @click="submitServiceDocs">
+                        Send for Admin Approval
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -902,6 +967,59 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                         @click="submitAssignment"
                     >
                         Assign Respondent
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Repair Category Modal -->
+        <Dialog :open="isRepairModalOpen" @update:open="isRepairModalOpen = $event">
+            <DialogContent class="max-w-md bg-white p-6 sm:rounded-2xl">
+                <DialogHeader>
+                    <DialogTitle class="text-xl font-bold text-slate-900">Select Repair Category</DialogTitle>
+                </DialogHeader>
+
+                <div class="py-4">
+                    <p class="mb-5 text-sm text-slate-600">Is this a minor or major repair? This will be pre-filled in the service documentation.</p>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <button
+                            type="button"
+                            :class="[
+                                'rounded-xl border-2 px-4 py-6 text-center transition',
+                                selectedRepairCategory === 'Minor'
+                                    ? 'border-blue-500 bg-blue-50 text-blue-800'
+                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300 hover:bg-blue-50',
+                            ]"
+                            @click="selectedRepairCategory = 'Minor'"
+                        >
+                            <p class="text-base font-bold">Minor</p>
+                            <p class="mt-1 text-xs text-slate-500">Small fix, short turnaround</p>
+                        </button>
+                        <button
+                            type="button"
+                            :class="[
+                                'rounded-xl border-2 px-4 py-6 text-center transition',
+                                selectedRepairCategory === 'Major'
+                                    ? 'border-orange-500 bg-orange-50 text-orange-800'
+                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-orange-300 hover:bg-orange-50',
+                            ]"
+                            @click="selectedRepairCategory = 'Major'"
+                        >
+                            <p class="text-base font-bold">Major</p>
+                            <p class="mt-1 text-xs text-slate-500">Extensive work required</p>
+                        </button>
+                    </div>
+                </div>
+
+                <DialogFooter class="gap-2">
+                    <Button
+                        type="button"
+                        class="bg-orange-600 text-white hover:bg-orange-700"
+                        :disabled="!selectedRepairCategory || isSettingRepair"
+                        @click="submitRepairCategory"
+                    >
+                        Confirm
                     </Button>
                 </DialogFooter>
             </DialogContent>

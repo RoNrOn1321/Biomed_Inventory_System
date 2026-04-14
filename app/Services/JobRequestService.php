@@ -8,10 +8,11 @@ use App\Models\User;
 
 class JobRequestService
 {
-    public function listAll(): array
+    public function listAll(?int $assignedToUserId = null): array
     {
         return JobRequest::query()
             ->with(['acceptedBy:id,name', 'assignedTo:id,name', 'biomedicalServiceDoc', 'requestDetail', 'repair', 'descEquAccessories'])
+            ->when($assignedToUserId !== null, fn ($q) => $q->where('assigned_to', $assignedToUserId))
             ->orderByRaw("case when status = 'Pending' then 0 when status = 'Accepted' then 1 else 2 end")
             ->orderByDesc('requested_at')
             ->get()
@@ -27,6 +28,7 @@ class JobRequestService
                 'accepted_at' => optional($jobRequest->accepted_at)->toIso8601String(),
                 'accepted_by' => $jobRequest->acceptedBy?->name,
                 'assigned_to_name' => $jobRequest->assignedTo?->name,
+                'repair_category' => $jobRequest->repair_category,
                 'biomedicalServiceDoc' => $jobRequest->biomedicalServiceDoc,
                 'request_type' => is_string($jobRequest->requestDetail?->request_type)
                     ? json_decode($jobRequest->requestDetail->request_type, true)
@@ -70,13 +72,31 @@ class JobRequestService
         $jobRequest->update(['assigned_to' => $userId]);
     }
 
+    public function setRepairCategory(JobRequest $jobRequest, string $category): void
+    {
+        $jobRequest->update(['repair_category' => $category]);
+    }
+
     public function complete(JobRequest $jobRequest, array $validated): void
     {
-        $biomedicalServiceDoc = BiomedicalServiceDoc::create($validated);
+        $repairOutcome = $validated['repair_outcome'] ?? null;
+        $docData = array_diff_key($validated, array_flip(['repair_outcome']));
+
+        $biomedicalServiceDoc = BiomedicalServiceDoc::create($docData);
+
+        // Auto-link to inventory equipment by matching name (case-insensitive)
+        $equipmentId = $jobRequest->equipment_id;
+        if (!$equipmentId) {
+            $matched = \App\Models\Equipment::whereRaw('LOWER(description) = ?', [strtolower($jobRequest->equipment_name)])->first();
+            $equipmentId = $matched?->id;
+        }
 
         $jobRequest->update([
             'status' => 'Done',
             'bio_service_docs_id' => $biomedicalServiceDoc->id,
+            'repair_outcome' => $repairOutcome,
+            'equipment_id' => $equipmentId,
+            'admin_approval' => 'Pending',
         ]);
     }
 }

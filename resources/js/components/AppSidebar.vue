@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { ClipboardList, LayoutDashboard, Package, ShieldAlert, Users, Wrench } from 'lucide-vue-next';
+import { ClipboardList, LayoutDashboard, Package, ShieldAlert, ShieldCheck, Users, Wrench } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -53,12 +53,19 @@ const mainNavItems: NavItem[] = [
         href: '/manage-accounts',
         icon: Users,
     },
+    {
+        title: 'Approvals',
+        href: '/approvals',
+        icon: ShieldCheck,
+    },
 ];
 
 const page = usePage<SharedData>();
 
 const visibleNavItems = computed(() => {
-    const isEndUser = page.props.auth.user.account_type === 'End_User';
+    const accountType = page.props.auth.user.account_type;
+    const isEndUser = accountType === 'End_User';
+    const isAdmin = accountType === 'Admin';
 
     if (isEndUser) {
         return mainNavItems.filter((item) => ['/dashboard', '/request-service', '/request-history', '/Inventory'].includes(item.href));
@@ -66,6 +73,8 @@ const visibleNavItems = computed(() => {
 
     return mainNavItems.filter((item) => {
         if (item.href === '/request-service' || item.href === '/request-history') return false;
+        if (item.href === '/approvals' && !isAdmin) return false;
+        if (item.href === '/manage-accounts' && accountType === 'Biomed_Technician') return false;
         return true;
     });
 });
