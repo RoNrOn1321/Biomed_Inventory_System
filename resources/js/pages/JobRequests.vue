@@ -22,6 +22,9 @@ interface JobRequestItem {
     assigned_to_name: string | null;
     repair_category: string | null;
     admin_approval: string | null;
+    repair_outcome: string | null;
+    equipment_id: number | null;
+    equipment_status: string | null;
     biomedicalServiceDoc?: any;
     request_type?: string[] | null;
     repair_type?: string | null;
@@ -80,6 +83,7 @@ if (canAcceptRequests.value) {
 // Dialog and form state
 const selectedJobRequestId = ref<number | null>(null);
 const isDocsDialogOpen = ref(false);
+const serviceDocsErrors = ref<Record<string, boolean>>({});
 
 // View Form Dialog state
 const isViewDialogOpen = ref(false);
@@ -258,27 +262,31 @@ const openServiceDocsDialog = (jobRequest: JobRequestItem) => {
     selectedJobRequestId.value = jobRequest.id;
     const authUserName = page.props.auth.user.name ?? '';
     const acceptedDate = jobRequest.accepted_at ? jobRequest.accepted_at.slice(0, 10) : '';
+    const category = jobRequest.repair_category ?? '';
+    const estimatedDays = category === 'Minor' ? '1-3 days' : category === 'Major' ? '1-3 months' : '';
     serviceDocsForm.value = {
         receive_by: authUserName,
         performed_by: jobRequest.assigned_to_name ?? authUserName,
         date_receive: acceptedDate,
         date_performed: '',
-        estimated_no_days: '',
+        estimated_no_days: estimatedDays,
         technician_date_received: '',
         date_started: '',
         date_finished: '',
         date_returned: '',
         receive_by_end_user: jobRequest.requester_name ?? '',
         remarks: '',
-        repair_category: jobRequest.repair_category ?? '',
+        repair_category: category,
         repair_outcome: '' as 'Repaired' | 'Unserviceable' | '',
     };
+    serviceDocsErrors.value = {};
     isDocsDialogOpen.value = true;
 };
 
 const closeServiceDocsDialog = () => {
     isDocsDialogOpen.value = false;
     selectedJobRequestId.value = null;
+    serviceDocsErrors.value = {};
 };
 
 const openViewDialog = (jobRequest: JobRequestItem) => {
@@ -291,10 +299,28 @@ const closeViewDialog = () => {
     selectedViewRequest.value = null;
 };
 
+const sendToPreInspection = (equipmentId: number) => {
+    router.put(`/pre-inspection/${equipmentId}/send`, {}, { preserveScroll: true });
+};
+
 const submitServiceDocs = () => {
     if (!selectedJobRequestId.value) return;
 
-    router.post(`/JobRequests/${selectedJobRequestId.value}/complete`, serviceDocsForm.value, {
+    const f = serviceDocsForm.value;
+    const errors: Record<string, boolean> = {};
+    if (!f.date_performed) errors.date_performed = true;
+    if (!f.estimated_no_days) errors.estimated_no_days = true;
+    if (!f.date_finished) errors.date_finished = true;
+    if (!f.date_returned) errors.date_returned = true;
+    if (!f.remarks) errors.remarks = true;
+    if (!f.repair_outcome) errors.repair_outcome = true;
+    if (Object.keys(errors).length) {
+        serviceDocsErrors.value = errors;
+        return;
+    }
+    serviceDocsErrors.value = {};
+
+    router.post(`/JobRequests/${selectedJobRequestId.value}/complete`, f, {
         onSuccess: () => {
             closeServiceDocsDialog();
         },
@@ -527,9 +553,25 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                 >
                                     Fill Service Docs & Complete
                                 </Button>
-                                <div v-else class="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700">
-                                    Completed - Service doc filed
+                                <div
+                                    v-else-if="jobRequest.status === 'Done' && jobRequest.admin_approval === 'Pending'"
+                                    class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700"
+                                >
+                                    Pending Admin Approval
                                 </div>
+                                <template v-else>
+                                    <div class="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700">
+                                        Completed - Service doc filed
+                                    </div>
+                                    <Button
+                                        v-if="jobRequest.equipment_id && jobRequest.equipment_status === 'Unserviceable'"
+                                        type="button"
+                                        class="bg-orange-600 text-white hover:bg-orange-700"
+                                        @click="sendToPreInspection(jobRequest.equipment_id!)"
+                                    >
+                                        Send to Pre-Inspection
+                                    </Button>
+                                </template>
 
                                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                                     <div v-if="jobRequest.status === 'Pending'">
@@ -540,6 +582,9 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                     </div>
                                     <div v-else-if="jobRequest.status === 'Accepted'">
                                         Accepted on {{ formatDateTime(jobRequest.accepted_at) }}. Fill service docs to complete.
+                                    </div>
+                                    <div v-else-if="jobRequest.status === 'Done' && jobRequest.admin_approval === 'Pending'">
+                                        Service doc submitted — awaiting admin approval before inventory status is updated.
                                     </div>
                                     <div v-else>Service documentation has been filed and archived.</div>
                                 </div>
@@ -605,49 +650,85 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                             />
                         </div>
                         <div>
-                            <label for="date_performed" class="mb-2 block text-sm font-medium text-slate-700">Date Performed</label>
+                            <label for="date_performed" class="mb-2 block text-sm font-medium text-slate-700"
+                                >Date Performed <span class="text-red-500">*</span></label
+                            >
                             <input
                                 id="date_performed"
                                 v-model="serviceDocsForm.date_performed"
                                 type="date"
-                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                                :class="[
+                                    'w-full rounded-lg border px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2',
+                                    serviceDocsErrors.date_performed
+                                        ? 'border-red-500 bg-red-50 focus:border-red-400 focus:ring-red-200'
+                                        : 'border-orange-200 focus:border-orange-400 focus:ring-orange-200',
+                                ]"
+                                @change="serviceDocsErrors.date_performed = false"
                             />
+                            <p v-if="serviceDocsErrors.date_performed" class="mt-1 text-xs text-red-500">This field is required.</p>
                         </div>
                     </div>
 
                     <!-- Row 3 -->
                     <div class="grid gap-4 md:grid-cols-2">
                         <div>
-                            <label for="estimated_no_days" class="mb-2 block text-sm font-medium text-slate-700">Estimated Days</label>
+                            <label for="estimated_no_days" class="mb-2 block text-sm font-medium text-slate-700"
+                                >Estimated Days <span class="text-red-500">*</span></label
+                            >
                             <input
                                 id="estimated_no_days"
                                 v-model="serviceDocsForm.estimated_no_days"
-                                type="number"
-                                placeholder="Number of days"
-                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                                type="text"
+                                placeholder="e.g. 1-3 days"
+                                :class="[
+                                    'w-full rounded-lg border px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2',
+                                    serviceDocsErrors.estimated_no_days
+                                        ? 'border-red-500 bg-red-50 focus:border-red-400 focus:ring-red-200'
+                                        : 'border-orange-200 focus:border-orange-400 focus:ring-orange-200',
+                                ]"
+                                @input="serviceDocsErrors.estimated_no_days = false"
                             />
+                            <p v-if="serviceDocsErrors.estimated_no_days" class="mt-1 text-xs text-red-500">This field is required.</p>
                         </div>
                         <div>
-                            <label for="date_finished" class="mb-2 block text-sm font-medium text-slate-700">Date Finished</label>
+                            <label for="date_finished" class="mb-2 block text-sm font-medium text-slate-700"
+                                >Date Finished <span class="text-red-500">*</span></label
+                            >
                             <input
                                 id="date_finished"
                                 v-model="serviceDocsForm.date_finished"
                                 type="date"
-                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                                :class="[
+                                    'w-full rounded-lg border px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2',
+                                    serviceDocsErrors.date_finished
+                                        ? 'border-red-500 bg-red-50 focus:border-red-400 focus:ring-red-200'
+                                        : 'border-orange-200 focus:border-orange-400 focus:ring-orange-200',
+                                ]"
+                                @change="serviceDocsErrors.date_finished = false"
                             />
+                            <p v-if="serviceDocsErrors.date_finished" class="mt-1 text-xs text-red-500">This field is required.</p>
                         </div>
                     </div>
 
                     <!-- Row 4 -->
                     <div class="grid gap-4 md:grid-cols-2">
                         <div>
-                            <label for="date_returned" class="mb-2 block text-sm font-medium text-slate-700">Date Returned</label>
+                            <label for="date_returned" class="mb-2 block text-sm font-medium text-slate-700"
+                                >Date Returned <span class="text-red-500">*</span></label
+                            >
                             <input
                                 id="date_returned"
                                 v-model="serviceDocsForm.date_returned"
                                 type="date"
-                                class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                                :class="[
+                                    'w-full rounded-lg border px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2',
+                                    serviceDocsErrors.date_returned
+                                        ? 'border-red-500 bg-red-50 focus:border-red-400 focus:ring-red-200'
+                                        : 'border-orange-200 focus:border-orange-400 focus:ring-orange-200',
+                                ]"
+                                @change="serviceDocsErrors.date_returned = false"
                             />
+                            <p v-if="serviceDocsErrors.date_returned" class="mt-1 text-xs text-red-500">This field is required.</p>
                         </div>
                         <div>
                             <label for="receive_by_end_user" class="mb-2 block text-sm font-medium text-slate-700">Received By (End User)</label>
@@ -665,7 +746,12 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                     <!-- Repair Outcome -->
                     <div>
                         <label class="mb-2 block text-sm font-medium text-slate-700"> Repair Outcome <span class="text-red-500">*</span> </label>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div
+                            :class="[
+                                'grid grid-cols-2 gap-3 rounded-xl p-1 transition',
+                                serviceDocsErrors.repair_outcome ? 'ring-2 ring-red-400' : '',
+                            ]"
+                        >
                             <button
                                 type="button"
                                 :class="[
@@ -674,7 +760,10 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                         ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
                                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50',
                                 ]"
-                                @click="serviceDocsForm.repair_outcome = 'Repaired'"
+                                @click="
+                                    serviceDocsForm.repair_outcome = 'Repaired';
+                                    serviceDocsErrors.repair_outcome = false;
+                                "
                             >
                                 ✔ Repaired
                                 <p class="mt-1 text-xs font-normal text-slate-500">Equipment is functional</p>
@@ -687,7 +776,10 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                                         ? 'border-red-500 bg-red-50 text-red-800'
                                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-red-300 hover:bg-red-50',
                                 ]"
-                                @click="serviceDocsForm.repair_outcome = 'Unserviceable'"
+                                @click="
+                                    serviceDocsForm.repair_outcome = 'Unserviceable';
+                                    serviceDocsErrors.repair_outcome = false;
+                                "
                             >
                                 ✘ Unserviceable
                                 <p class="mt-1 text-xs font-normal text-slate-500">Beyond repair</p>
@@ -728,14 +820,21 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
 
                     <!-- Remarks -->
                     <div>
-                        <label for="remarks" class="mb-2 block text-sm font-medium text-slate-700">Remarks</label>
+                        <label for="remarks" class="mb-2 block text-sm font-medium text-slate-700">Remarks <span class="text-red-500">*</span></label>
                         <textarea
                             id="remarks"
                             v-model="serviceDocsForm.remarks"
                             placeholder="Add any remarks or notes about the service"
                             rows="4"
-                            class="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                            :class="[
+                                'w-full rounded-lg border px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2',
+                                serviceDocsErrors.remarks
+                                    ? 'border-red-500 bg-red-50 focus:border-red-400 focus:ring-red-200'
+                                    : 'border-orange-200 focus:border-orange-400 focus:ring-orange-200',
+                            ]"
+                            @input="serviceDocsErrors.remarks = false"
                         />
+                        <p v-if="serviceDocsErrors.remarks" class="mt-1 text-xs text-red-500">This field is required.</p>
                     </div>
                 </div>
 

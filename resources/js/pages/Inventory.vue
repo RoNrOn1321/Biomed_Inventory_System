@@ -819,6 +819,11 @@ const formatHistoryDate = (val: string | null) => {
                                             >{{ item.status }}</span
                                         >
                                         <span
+                                            v-else-if="item.status === 'Condemned'"
+                                            class="inline-flex cursor-pointer items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-400/20 hover:bg-gray-200"
+                                            >{{ item.status }}</span
+                                        >
+                                        <span
                                             v-else
                                             class="inline-flex cursor-pointer items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20 hover:bg-yellow-100"
                                             >{{ item.status }}</span

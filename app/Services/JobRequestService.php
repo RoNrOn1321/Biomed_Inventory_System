@@ -11,7 +11,7 @@ class JobRequestService
     public function listAll(?int $technicianUserId = null): array
     {
         return JobRequest::query()
-            ->with(['acceptedBy:id,name', 'assignedTo:id,name', 'biomedicalServiceDoc', 'requestDetail', 'repair', 'descEquAccessories'])
+            ->with(['acceptedBy:id,name', 'assignedTo:id,name', 'biomedicalServiceDoc', 'requestDetail', 'repair', 'descEquAccessories', 'linkedEquipment:id,status'])
             ->when($technicianUserId !== null, fn ($q) => $q->where(function ($q) use ($technicianUserId) {
                 $q->where('status', 'Pending')
                   ->orWhere('assigned_to', $technicianUserId);
@@ -33,6 +33,9 @@ class JobRequestService
                 'assigned_to_name' => $jobRequest->assignedTo?->name,
                 'repair_category' => $jobRequest->repair_category,
                 'admin_approval' => $jobRequest->admin_approval,
+                'repair_outcome' => $jobRequest->repair_outcome,
+                'equipment_id' => $jobRequest->equipment_id,
+                'equipment_status' => $jobRequest->linkedEquipment?->status,
                 'biomedicalServiceDoc' => $jobRequest->biomedicalServiceDoc,
                 'request_type' => is_string($jobRequest->requestDetail?->request_type)
                     ? json_decode($jobRequest->requestDetail->request_type, true)
@@ -112,10 +115,6 @@ class JobRequestService
             'equipment_id' => $equipmentId,
             'admin_approval' => 'Pending',
         ]);
-
-        // Immediately mark linked equipment as Unserviceable if deemed so by tech
-        if ($equipmentId && $repairOutcome === 'Unserviceable') {
-            \App\Models\Equipment::where('id', $equipmentId)->update(['status' => 'Unserviceable']);
-        }
+        // Equipment status is NOT updated here — it is only updated after admin approval.
     }
 }
