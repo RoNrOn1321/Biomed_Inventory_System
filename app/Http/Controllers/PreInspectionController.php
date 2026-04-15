@@ -14,7 +14,7 @@ class PreInspectionController extends Controller
     {
         $this->ensureAccess($request);
 
-        $query = Equipment::where('status', 'Pre Inspection')->latest('updated_at');
+        $query = Equipment::whereIn('status', ['Pre Inspection', 'Awaiting Approval'])->latest('updated_at');
 
         if ($search = $request->input('search')) {
             $term = '%' . $search . '%';
@@ -48,7 +48,11 @@ class PreInspectionController extends Controller
         $this->ensureAccess($request);
         abort_unless($equipment->status === 'Pre Inspection', 422);
 
-        $equipment->update(['status' => 'Functional']);
+        $equipment->update([
+            'status' => 'Awaiting Approval',
+            'admin_approval' => 'Pending',
+            'pending_action' => 'Restore',
+        ]);
 
         return redirect()->back();
     }
@@ -58,7 +62,11 @@ class PreInspectionController extends Controller
         $this->ensureAccess($request);
         abort_unless($equipment->status === 'Pre Inspection', 422);
 
-        $equipment->update(['status' => 'Condemned']);
+        $equipment->update([
+            'status' => 'Awaiting Approval',
+            'admin_approval' => 'Pending',
+            'pending_action' => 'Condemn',
+        ]);
 
         return redirect()->back();
     }

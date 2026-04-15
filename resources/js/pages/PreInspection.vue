@@ -15,6 +15,8 @@ interface Equipment {
     tag_number: string | null;
     pm_date_done: string | null;
     status: string | null;
+    admin_approval: string | null;
+    pending_action: string | null;
     updated_at: string | null;
 }
 
@@ -100,11 +102,11 @@ watch(search, () => {
 
 // Restore to Functional
 const restoreEquipment = (item: Equipment) => {
-    openConfirmModal('Restore Equipment', `Restore "${item.description}" to Functional?`, () =>
+    openConfirmModal('Send for Approval — Restore', `Submit "${item.description}" for admin approval to restore to Functional?`, () =>
         router.put(
             `/pre-inspection/${item.id}/restore`,
             {},
-            { preserveScroll: true, onSuccess: () => showToast(`${item.description} restored to Functional.`) },
+            { preserveScroll: true, onSuccess: () => showToast(`${item.description} sent for admin approval (Restore).`) },
         ),
     );
 };
@@ -112,13 +114,13 @@ const restoreEquipment = (item: Equipment) => {
 // Condemn
 const condemnEquipment = (item: Equipment) => {
     openConfirmModal(
-        'Condemn Equipment',
-        `Mark "${item.description}" as Condemned? This cannot be undone.`,
+        'Send for Approval — Condemn',
+        `Submit "${item.description}" for admin approval to condemn for disposal?`,
         () =>
             router.put(
                 `/pre-inspection/${item.id}/condemn`,
                 {},
-                { preserveScroll: true, onSuccess: () => showToast(`${item.description} has been condemned.`) },
+                { preserveScroll: true, onSuccess: () => showToast(`${item.description} sent for admin approval (Condemn).`) },
             ),
         true,
     );
@@ -291,6 +293,13 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                             </td>
                             <td class="whitespace-nowrap border-r border-gray-200 px-3 py-4 text-sm">
                                 <span
+                                    v-if="item.status === 'Awaiting Approval'"
+                                    class="inline-flex items-center rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"
+                                >
+                                    Awaiting Approval
+                                </span>
+                                <span
+                                    v-else
                                     class="inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-600/10"
                                 >
                                     Pre Inspection
@@ -317,11 +326,11 @@ const deleteDocument = async (doc: EquipmentDocument) => {
 
                                     <!-- Restore to Functional -->
                                     <button
-                                        v-if="canAct"
+                                        v-if="canAct && item.status === 'Pre Inspection'"
                                         type="button"
                                         @click="restoreEquipment(item)"
                                         class="rounded bg-green-50 px-2 py-2 text-green-600 hover:bg-green-100 hover:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        title="Restore to Functional"
+                                        title="Send for Approval — Restore to Functional"
                                     >
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path
@@ -335,11 +344,11 @@ const deleteDocument = async (doc: EquipmentDocument) => {
 
                                     <!-- Condemn -->
                                     <button
-                                        v-if="canAct"
+                                        v-if="canAct && item.status === 'Pre Inspection'"
                                         type="button"
                                         @click="condemnEquipment(item)"
                                         class="rounded bg-red-50 px-2 py-2 text-red-600 hover:bg-red-100 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                        title="Condemn (Dispose)"
+                                        title="Send for Approval — Condemn"
                                     >
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path
@@ -350,6 +359,22 @@ const deleteDocument = async (doc: EquipmentDocument) => {
                                             />
                                         </svg>
                                     </button>
+
+                                    <!-- Pending approval label -->
+                                    <span
+                                        v-if="item.status === 'Awaiting Approval'"
+                                        class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"
+                                    >
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                            />
+                                        </svg>
+                                        {{ item.pending_action }} — Awaiting Admin
+                                    </span>
                                 </div>
                             </td>
                         </tr>

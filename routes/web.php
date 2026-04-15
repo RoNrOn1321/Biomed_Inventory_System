@@ -50,6 +50,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/equipment/documents/{documentId}/download', [App\Http\Controllers\EquipmentDocumentController::class, 'download'])->name('equipment.documents.download');
     Route::delete('/equipment/documents/{documentId}', [App\Http\Controllers\EquipmentDocumentController::class, 'destroy'])->name('equipment.documents.destroy');
 
+    Route::get('/job-request-history', [App\Http\Controllers\JobRequestHistoryController::class, 'index'])->name('job-request-history.index');
+    Route::get('/job-request-history/export', [App\Http\Controllers\JobRequestHistoryController::class, 'export'])->name('job-request-history.export');
+
     Route::get('/equipment/{equipmentId}/calibrations', [App\Http\Controllers\EquipmentCalibrationController::class, 'index'])->name('equipment.calibrations.index');
     Route::post('/equipment/{equipmentId}/calibrations', [App\Http\Controllers\EquipmentCalibrationController::class, 'store'])->name('equipment.calibrations.store');
     Route::get('/equipment/calibrations/{fileId}/preview', [App\Http\Controllers\EquipmentCalibrationController::class, 'preview'])->name('equipment.calibrations.preview');

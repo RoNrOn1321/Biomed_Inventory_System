@@ -106,6 +106,7 @@ class ApprovalsService
     public function rejectEquipment(Equipment $equipment, int $adminId, ?string $notes): void
     {
         $equipment->update([
+            'status' => 'Pre Inspection', // Revert back to pre-inspection queue
             'admin_approval' => 'Rejected',
             'admin_approval_notes' => $notes,
             'admin_reviewed_at' => now(),

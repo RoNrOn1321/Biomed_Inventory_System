@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { ClipboardList, LayoutDashboard, Package, ShieldAlert, ShieldCheck, Users, Wrench } from 'lucide-vue-next';
+import { ClipboardList, History, LayoutDashboard, Package, ShieldAlert, ShieldCheck, Users, Wrench } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -47,6 +47,11 @@ const mainNavItems: NavItem[] = [
         title: 'Pre Inspection',
         href: '/pre-inspection',
         icon: ShieldAlert,
+    },
+    {
+        title: 'Job Request History',
+        href: '/job-request-history',
+        icon: History,
     },
     {
         title: 'Manage Accounts',
