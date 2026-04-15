@@ -140,6 +140,7 @@ const addModalVisible = ref(false);
 const editModalVisible = ref(false);
 const deleteModalVisible = ref(false);
 const exportPanelVisible = ref(false);
+const addFormErrors = ref<Record<string, boolean>>({});
 
 const toastVisible = ref(false);
 const toastMessage = ref('');
@@ -226,14 +227,31 @@ const downloadInventory = () => {
 const openAddModal = () => {
     addItemForm.reset();
     addItemForm.pm_date_done = todayDate;
+    addFormErrors.value = {};
     addModalVisible.value = true;
 };
 
 const closeAddModal = () => {
     addModalVisible.value = false;
+    addFormErrors.value = {};
+    addItemForm.reset();
+    addItemForm.pm_date_done = todayDate;
 };
 
 const submitAddModal = () => {
+    const errors: Record<string, boolean> = {};
+    if (!addItemForm.location) errors.location = true;
+    if (!addItemForm.description) errors.description = true;
+    if (!addItemForm.brand) errors.brand = true;
+    if (!addItemForm.model) errors.model = true;
+    if (!addItemForm.serial_number) errors.serial_number = true;
+    if (!addItemForm.tag_number) errors.tag_number = true;
+    if (!addItemForm.pm_date_done) errors.pm_date_done = true;
+    if (Object.keys(errors).length) {
+        addFormErrors.value = errors;
+        return;
+    }
+    addFormErrors.value = {};
     addItemForm.post('/equipment', {
         onSuccess: () => {
             closeAddModal();
@@ -648,6 +666,8 @@ const formatHistoryDate = (val: string | null) => {
                                 <option value="Functional">Functional</option>
                                 <option value="Defective">Defective</option>
                                 <option value="Unserviceable">Unserviceable</option>
+                                <option value="Pre Inspection">Pre Inspection</option>
+                                <option value="Condemned">Condemned</option>
                             </select>
                             <button
                                 type="button"
@@ -984,68 +1004,132 @@ const formatHistoryDate = (val: string | null) => {
                     <form @submit.prevent="submitAddModal" class="space-y-4 p-6">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Location</label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Location <span class="text-red-500">*</span></label>
                                 <select
                                     v-model="addItemForm.location"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    :class="[
+                                        'w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2',
+                                        addFormErrors.location || addItemForm.errors.location
+                                            ? 'border-red-500 bg-red-50 focus:ring-red-300'
+                                            : 'border-gray-300 focus:ring-orange-500',
+                                    ]"
+                                    @change="addFormErrors.location = false"
                                 >
                                     <option value="">— Select user —</option>
                                     <option v-for="user in users" :key="user.id" :value="user.name">{{ user.name }}</option>
                                 </select>
+                                <p v-if="addFormErrors.location || addItemForm.errors.location" class="mt-1 text-xs text-red-500">
+                                    {{ addItemForm.errors.location || 'This field is required.' }}
+                                </p>
                             </div>
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Equipment Description</label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"
+                                    >Equipment Description <span class="text-red-500">*</span></label
+                                >
                                 <input
                                     type="text"
                                     v-model="addItemForm.description"
-                                    required
                                     placeholder="Equipment name"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    :class="[
+                                        'w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2',
+                                        addFormErrors.description || addItemForm.errors.description
+                                            ? 'border-red-500 bg-red-50 focus:ring-red-300'
+                                            : 'border-gray-300 focus:ring-orange-500',
+                                    ]"
+                                    @input="addFormErrors.description = false"
                                 />
+                                <p v-if="addFormErrors.description || addItemForm.errors.description" class="mt-1 text-xs text-red-500">
+                                    {{ addItemForm.errors.description || 'This field is required.' }}
+                                </p>
                             </div>
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Brand</label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Brand <span class="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     v-model="addItemForm.brand"
                                     placeholder="Brand name"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    :class="[
+                                        'w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2',
+                                        addFormErrors.brand || addItemForm.errors.brand
+                                            ? 'border-red-500 bg-red-50 focus:ring-red-300'
+                                            : 'border-gray-300 focus:ring-orange-500',
+                                    ]"
+                                    @input="addFormErrors.brand = false"
                                 />
+                                <p v-if="addFormErrors.brand || addItemForm.errors.brand" class="mt-1 text-xs text-red-500">
+                                    {{ addItemForm.errors.brand || 'This field is required.' }}
+                                </p>
                             </div>
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Model</label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Model <span class="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     v-model="addItemForm.model"
                                     placeholder="Model number"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    :class="[
+                                        'w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2',
+                                        addFormErrors.model || addItemForm.errors.model
+                                            ? 'border-red-500 bg-red-50 focus:ring-red-300'
+                                            : 'border-gray-300 focus:ring-orange-500',
+                                    ]"
+                                    @input="addFormErrors.model = false"
                                 />
+                                <p v-if="addFormErrors.model || addItemForm.errors.model" class="mt-1 text-xs text-red-500">
+                                    {{ addItemForm.errors.model || 'This field is required.' }}
+                                </p>
                             </div>
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Serial #</label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Serial # <span class="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     v-model="addItemForm.serial_number"
                                     placeholder="Serial number"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    :class="[
+                                        'w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2',
+                                        addFormErrors.serial_number || addItemForm.errors.serial_number
+                                            ? 'border-red-500 bg-red-50 focus:ring-red-300'
+                                            : 'border-gray-300 focus:ring-orange-500',
+                                    ]"
+                                    @input="addFormErrors.serial_number = false"
                                 />
+                                <p v-if="addFormErrors.serial_number || addItemForm.errors.serial_number" class="mt-1 text-xs text-red-500">
+                                    {{ addItemForm.errors.serial_number || 'This field is required.' }}
+                                </p>
                             </div>
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">TAG #</label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">TAG # <span class="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     v-model="addItemForm.tag_number"
                                     placeholder="TAG number"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    :class="[
+                                        'w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2',
+                                        addFormErrors.tag_number || addItemForm.errors.tag_number
+                                            ? 'border-red-500 bg-red-50 focus:ring-red-300'
+                                            : 'border-gray-300 focus:ring-orange-500',
+                                    ]"
+                                    @input="addFormErrors.tag_number = false"
                                 />
+                                <p v-if="addFormErrors.tag_number || addItemForm.errors.tag_number" class="mt-1 text-xs text-red-500">
+                                    {{ addItemForm.errors.tag_number || 'This field is required.' }}
+                                </p>
                             </div>
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">PM Date Done</label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">PM Date Done <span class="text-red-500">*</span></label>
                                 <input
                                     type="date"
                                     v-model="addItemForm.pm_date_done"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    :class="[
+                                        'w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2',
+                                        addFormErrors.pm_date_done || addItemForm.errors.pm_date_done
+                                            ? 'border-red-500 bg-red-50 focus:ring-red-300'
+                                            : 'border-gray-300 focus:ring-orange-500',
+                                    ]"
+                                    @change="addFormErrors.pm_date_done = false"
                                 />
+                                <p v-if="addFormErrors.pm_date_done || addItemForm.errors.pm_date_done" class="mt-1 text-xs text-red-500">
+                                    {{ addItemForm.errors.pm_date_done || 'This field is required.' }}
+                                </p>
                             </div>
                         </div>
                         <div class="flex gap-3 border-t pt-4">
