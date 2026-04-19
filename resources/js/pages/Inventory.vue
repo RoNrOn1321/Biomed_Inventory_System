@@ -67,6 +67,7 @@ const props = defineProps<{
 }>();
 
 const page = usePage<SharedData>();
+const isAdmin = computed(() => page.props.auth.user.account_type === 'Admin');
 const canSendToPreInspection = computed(() => ['Admin', 'Moderator', 'Biomed_Technician'].includes(page.props.auth.user.account_type));
 
 // Send to Pre Inspection confirm modal
@@ -884,6 +885,7 @@ const formatHistoryDate = (val: string | null) => {
                                             </svg>
                                         </button>
                                         <button
+                                            v-if="isAdmin"
                                             type="button"
                                             @click="openDeleteModal(item)"
                                             class="rounded bg-red-50 px-2 py-2 text-red-600 hover:bg-red-100 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"

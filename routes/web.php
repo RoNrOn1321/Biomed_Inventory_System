@@ -49,6 +49,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/equipment/documents/{documentId}/preview', [App\Http\Controllers\EquipmentDocumentController::class, 'preview'])->name('equipment.documents.preview');
     Route::get('/equipment/documents/{documentId}/download', [App\Http\Controllers\EquipmentDocumentController::class, 'download'])->name('equipment.documents.download');
     Route::delete('/equipment/documents/{documentId}', [App\Http\Controllers\EquipmentDocumentController::class, 'destroy'])->name('equipment.documents.destroy');
+    Route::post('/equipment/{equipment}/pre-inspection', [App\Http\Controllers\PreInspectionController::class, 'prepare'])->name('equipment.pre-inspection.prepare');
+    Route::post('/equipment/{equipment}/pre-inspection/save', [App\Http\Controllers\PreInspectionController::class, 'save'])->name('equipment.pre-inspection.save');
 
     Route::get('/job-request-history', [App\Http\Controllers\JobRequestHistoryController::class, 'index'])->name('job-request-history.index');
     Route::get('/job-request-history/export', [App\Http\Controllers\JobRequestHistoryController::class, 'export'])->name('job-request-history.export');

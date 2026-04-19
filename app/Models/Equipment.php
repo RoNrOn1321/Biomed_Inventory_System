@@ -14,9 +14,21 @@ class Equipment extends Model
         'location', 'description', 'brand', 'model',
         'serial_number', 'tag_number', 'pm_date_done',
         'calibration', 'status',
+        'pre_inspection_control_no', 'pre_inspectioned_at',
+        'pre_inspection_form_data',
         'admin_approval', 'pending_action', 'admin_approval_notes',
         'admin_reviewed_at', 'admin_reviewed_by',
     ];
+
+    protected $casts = [
+        'pre_inspection_form_data' => 'array',
+        'pre_inspectioned_at' => 'date',
+    ];
+
+    public function documents()
+    {
+        return $this->hasMany(EquipmentDocument::class);
+    }
 
     public function calibrations()
     {

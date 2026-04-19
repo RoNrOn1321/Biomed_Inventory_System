@@ -329,7 +329,7 @@ const initials = (name: string) =>
                                         Update Type
                                     </th>
                                     <th
-                                        v-if="canManageAccounts"
+                                        v-if="isAdmin"
                                         class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white"
                                     >
                                         Technician Actions
@@ -376,7 +376,7 @@ const initials = (name: string) =>
                                             </option>
                                         </select>
                                     </td>
-                                    <td v-if="canManageAccounts" class="px-6 py-4">
+                                    <td v-if="isAdmin" class="px-6 py-4">
                                         <div v-if="canManageTechnician(user)" class="flex flex-wrap gap-2">
                                             <Button
                                                 v-if="isAdmin"
@@ -388,13 +388,13 @@ const initials = (name: string) =>
                                             <Button type="button" class="bg-blue-600 text-white hover:bg-blue-700" @click="openPasswordDialog(user)">
                                                 Change password
                                             </Button>
-                                            <Button type="button" variant="destructive" @click="openDeleteDialog(user)">Delete</Button>
+                                            <Button v-if="isAdmin" type="button" variant="destructive" @click="openDeleteDialog(user)">Delete</Button>
                                         </div>
                                         <p v-else class="text-sm text-slate-400">Cannot edit own account</p>
                                     </td>
                                 </tr>
                                 <tr v-if="filteredUsers.length === 0">
-                                    <td :colspan="isAdmin ? 7 : canManageAccounts ? 6 : 5" class="px-6 py-10 text-center text-sm text-slate-500">
+                                    <td :colspan="isAdmin ? 7 : 5" class="px-6 py-10 text-center text-sm text-slate-500">
                                         No accounts found for the selected role.
                                     </td>
                                 </tr>
