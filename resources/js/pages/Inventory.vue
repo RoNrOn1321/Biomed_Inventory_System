@@ -513,6 +513,12 @@ const formatHistoryDate = (val: string | null) => {
     if (!val) return 'N/A';
     return new Date(val).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 };
+
+const downloadHistoryPdf = () => {
+    if (!selectedHistoryItem.value) return;
+    const id = selectedHistoryItem.value.id;
+    window.open(`/JobRequests/${id}/export`, '_blank');
+};
 </script>
 <style>
 @keyframes fadeIn {
@@ -1826,15 +1832,25 @@ const formatHistoryDate = (val: string | null) => {
                 <div class="flex flex-1 flex-col overflow-hidden">
                     <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
                         <h3 class="text-lg font-bold text-slate-900">Request Details</h3>
-                        <button
-                            type="button"
-                            class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                            @click="jobHistoryModalOpen = false"
-                        >
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button
+                                type="button"
+                                class="rounded-lg px-3 py-1.5 text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                                @click="downloadHistoryPdf"
+                                v-if="selectedHistoryItem"
+                            >
+                                Download PDF
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                @click="jobHistoryModalOpen = false"
+                            >
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="flex-1 overflow-y-auto px-6 py-6">

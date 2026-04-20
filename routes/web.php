@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/JobRequests/{jobRequest}/assign', [App\Http\Controllers\JobRequestController::class, 'assign'])->name('job-requests.assign');
     Route::put('/JobRequests/{jobRequest}/repair-category', [App\Http\Controllers\JobRequestController::class, 'setRepairCategory'])->name('job-requests.repair-category');
     Route::post('/JobRequests/{jobRequest}/complete', [App\Http\Controllers\JobRequestController::class, 'complete'])->name('job-requests.complete');
+    Route::get('/JobRequests/{jobRequest}/export', [App\Http\Controllers\JobRequestController::class, 'export'])->name('job-requests.export');
 
     Route::get('/request-service', [App\Http\Controllers\EndUserJobRequestController::class, 'create'])->name('end-user.job-request.create');
     Route::post('/request-service', [App\Http\Controllers\EndUserJobRequestController::class, 'store'])->name('end-user.job-request.store');

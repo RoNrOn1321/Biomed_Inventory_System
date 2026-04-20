@@ -8,6 +8,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class JobRequestController extends Controller
 {
@@ -106,5 +108,23 @@ class JobRequestController extends Controller
     private function ensureCanManageRequests(Request $request): void
     {
         abort_unless(in_array($request->user()?->account_type, ['Biomed_Technician', 'Admin', 'Moderator'], true), 403);
+    }
+
+    public function export(Request $request, JobRequest $jobRequest)
+    {
+        $this->ensureCanManageRequests($request);
+
+        $jobRequest->load(['acceptedBy:id,name', 'assignedTo:id,name', 'linkedEquipment', 'biomedicalServiceDoc']);
+
+        $data = [
+            'job' => $jobRequest,
+            'generatedAt' => now(),
+        ];
+
+        $filename = sprintf('job-request-%s.pdf', $jobRequest->control_no ?? $jobRequest->id);
+
+        return Pdf::loadView('exports.job-request', $data)
+            ->setPaper('legal', 'portrait')
+            ->download($filename);
     }
 }
