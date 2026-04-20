@@ -39,8 +39,8 @@ class ProfileController extends Controller
         $user->fill($request->safe()->only($fields));
 
         if ($request->hasFile('avatar')) {
-            if ($user->avatar) {
-                Storage::disk('public')->delete($user->avatar);
+            if ($user->avatar_storage_path) {
+                Storage::disk('public')->delete($user->avatar_storage_path);
             }
 
             $user->avatar = $request->file('avatar')->store('avatars', 'public');
@@ -66,8 +66,8 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        if ($user->avatar) {
-            Storage::disk('public')->delete($user->avatar);
+        if ($user->avatar_storage_path) {
+            Storage::disk('public')->delete($user->avatar_storage_path);
         }
 
         Auth::logout();

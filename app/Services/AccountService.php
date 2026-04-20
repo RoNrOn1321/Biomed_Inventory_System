@@ -30,7 +30,7 @@ class AccountService
                 'email' => $user->email,
                 'department' => $user->department,
                 'account_type' => $user->account_type,
-                'avatar' => $user->avatar ? asset('storage/' . $user->avatar) : null,
+                'avatar' => $user->avatar_url,
                 'created_at' => optional($user->created_at)->toDateString(),
             ])
             ->all();
@@ -53,8 +53,8 @@ class AccountService
 
     public function deleteUser(User $user): void
     {
-        if ($user->avatar) {
-            Storage::disk('public')->delete($user->avatar);
+        if ($user->avatar_storage_path) {
+            Storage::disk('public')->delete($user->avatar_storage_path);
         }
 
         $user->delete();

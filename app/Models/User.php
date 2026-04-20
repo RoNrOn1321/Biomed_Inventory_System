@@ -6,6 +6,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -47,5 +49,41 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (! $this->avatar) {
+            return null;
+        }
+
+        if (Str::startsWith($this->avatar, ['http://', 'https://', '/'])) {
+            return $this->avatar;
+        }
+
+        return Storage::url($this->avatar);
+    }
+
+    public function getAvatarStoragePathAttribute(): ?string
+    {
+        if (! $this->avatar) {
+            return null;
+        }
+
+        if (Str::startsWith($this->avatar, ['http://', 'https://'])) {
+            $path = parse_url($this->avatar, PHP_URL_PATH);
+
+            if (! is_string($path) || $path === '') {
+                return null;
+            }
+
+            $path = ltrim($path, '/');
+
+            return Str::startsWith($path, 'storage/') ? Str::after($path, 'storage/') : $path;
+        }
+
+        $path = ltrim($this->avatar, '/');
+
+        return Str::startsWith($path, 'storage/') ? Str::after($path, 'storage/') : $path;
     }
 }
