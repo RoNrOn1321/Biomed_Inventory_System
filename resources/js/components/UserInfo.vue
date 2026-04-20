@@ -2,7 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useInitials } from '@/composables/useInitials';
 import type { User } from '@/types';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 interface Props {
     user: User;
@@ -15,14 +15,23 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { getInitials } = useInitials();
 
-// Compute whether we should show the avatar image
+// Compute whether we should attempt to show the avatar image
 const showAvatar = computed(() => props.user.avatar && props.user.avatar !== '');
+const imageFailed = ref(false);
+
+watch(
+    () => props.user.avatar,
+    () => {
+        // reset error state when avatar value changes
+        imageFailed.value = false;
+    },
+);
 </script>
 
 <template>
-    <Avatar class="h-8 w-8 overflow-hidden rounded-full border-2 border-orange-500">
-        <AvatarImage v-if="showAvatar" :src="user.avatar" :alt="user.name" />
-        <AvatarFallback class="rounded-full text-black dark:text-white">
+    <Avatar class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-orange-200 bg-orange-100 text-sm font-semibold text-orange-700">
+        <AvatarImage v-if="showAvatar && !imageFailed" :src="user.avatar" :alt="user.name" class="h-full w-full object-cover" @error="imageFailed = true" />
+        <AvatarFallback v-else class="flex h-full w-full items-center justify-center rounded-full bg-orange-100 text-sm font-semibold text-orange-700">
             {{ getInitials(user.name) }}
         </AvatarFallback>
     </Avatar>

@@ -18,7 +18,7 @@ import { getInitials } from '@/composables/useInitials';
 import type { BreadcrumbItem, NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 interface Props {
     breadcrumbs?: BreadcrumbItem[];
@@ -29,7 +29,8 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const page = usePage();
-const auth = computed(() => page.props.auth);
+const auth = computed(() => page.props.auth as any);
+const headerImageFailed = ref(false);
 
 const isCurrentRoute = (url: string) => {
     return page.url === url;
@@ -159,17 +160,17 @@ const rightNavItems: NavItem[] = [
 
                     <DropdownMenu>
                         <DropdownMenuTrigger :as-child="true">
-                            <Button
+                                <Button
                                 variant="ghost"
                                 size="icon"
                                 class="relative size-10 w-auto rounded-full p-1 focus-within:ring-2 focus-within:ring-primary"
                             >
-                                <Avatar class="size-8 overflow-hidden rounded-full">
-                                    <AvatarImage :src="auth.user.avatar" :alt="auth.user.name" />
-                                    <AvatarFallback class="rounded-lg bg-neutral-200 font-semibold text-black dark:bg-neutral-700 dark:text-white">
+                                <Avatar class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-orange-200 bg-orange-100 text-sm font-semibold text-orange-700">
+                                        <AvatarImage v-if="auth.user.avatar && !headerImageFailed" :key="auth.user?.avatar" :src="auth.user.avatar" :alt="auth.user.name" class="h-full w-full object-cover" @error="headerImageFailed = true" />
+                                        <AvatarFallback v-else class="flex h-full w-full items-center justify-center rounded-full bg-orange-100 text-sm font-semibold text-orange-700">
                                         {{ getInitials(auth.user?.name) }}
                                     </AvatarFallback>
-                                </Avatar>
+                                    </Avatar>
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" class="w-56">

@@ -30,7 +30,7 @@ class AccountService
                 'email' => $user->email,
                 'department' => $user->department,
                 'account_type' => $user->account_type,
-                'avatar' => $user->avatar_url,
+                'avatar' => $user->avatar_storage_path ? '/storage/' . $user->avatar_storage_path : null,
                 'created_at' => optional($user->created_at)->toDateString(),
             ])
             ->all();
