@@ -278,9 +278,13 @@ const pirForm = ref({
     findings: '',
     recommendation: '',
     inspector_name: '',
+    inspector_position: 'MET-II',
     checked_by: '',
+    checked_by_position: 'MET-II',
     recommending_approval: '',
+    recommending_position: 'Section Head',
     approved_by: '',
+    approved_by_position: 'Medical Center Chief II',
 });
 
 const fieldErrors = ref<Record<string, boolean>>({});
@@ -306,13 +310,17 @@ const resetPirForm = () => {
         defects_complaints: '',
         nature_of_work: '',
         parts_to_supply: '',
-        requested_by: '',
+        requested_by: currentEndUser,
         findings: '',
         recommendation: '',
         inspector_name: '',
+        inspector_position: 'MET-II',
         checked_by: '',
+        checked_by_position: 'MET-II',
         recommending_approval: '',
+        recommending_position: 'Section Head',
         approved_by: '',
+        approved_by_position: 'Medical Center Chief II',
     };
     fieldErrors.value = {};
 };
@@ -553,21 +561,21 @@ const downloadPirForm = async () => {
         sigW = sc - 10;
     hline(ml + 2, sy, ml + sigW + 2, sy);
     txt(f.inspector_name, ml + 2 + sigW / 2, sy - 1, { size: 11, maxWidth: sigW, align: 'center' });
-    txt('MET-II', ml + sc / 2, sy + 5, { size: 11, align: 'center', color: [80, 80, 80] });
+    txt(f.inspector_position, ml + sc / 2, sy + 5, { size: 11, align: 'center', color: [80, 80, 80] });
     txt('Checked by:', ml + sc + sc / 2, y + 4, { size: 11, style: 'bold', align: 'center' });
     hline(ml + sc + 4, sy, ml + sc + sigW + 4, sy);
     txt(f.checked_by, ml + sc + 4 + sigW / 2, sy - 1, { size: 11, maxWidth: sigW, align: 'center' });
-    txt('MET-II', ml + sc + sc / 2, sy + 5, { size: 11, align: 'center', color: [80, 80, 80] });
+    txt(f.checked_by_position, ml + sc + sc / 2, sy + 5, { size: 11, align: 'center', color: [80, 80, 80] });
 
     y = sy + 30;
     txt('Recommending Approval :', ml + sc / 2, y, { size: 11, style: 'bold', align: 'center' });
     hline(ml + 2, y + 14, ml + sigW + 2, y + 14);
     txt(f.recommending_approval, ml + 2 + sigW / 2, y + 13, { size: 11, maxWidth: sigW, align: 'center' });
-    txt('Section Head', ml + sc / 2, y + 20, { size: 11, align: 'center', color: [80, 80, 80] });
+    txt(f.recommending_position, ml + sc / 2, y + 20, { size: 11, align: 'center', color: [80, 80, 80] });
     txt('Approved :', ml + sc + sc / 2, y, { size: 11, style: 'bold', align: 'center' });
     hline(ml + sc + 4, y + 14, ml + sc + sigW + 4, y + 14);
     txt(f.approved_by, ml + sc + 4 + sigW / 2, y + 13, { size: 11, maxWidth: sigW, align: 'center' });
-    txt('Medical Center Chief II', ml + sc + sc / 2, y + 20, { size: 11, align: 'center', color: [80, 80, 80] });
+    txt(f.approved_by_position, ml + sc + sc / 2, y + 20, { size: 11, align: 'center', color: [80, 80, 80] });
 
     const safeName = eq.description.replace(/[^a-zA-Z0-9]/g, '-');
     doc.save('PIR-' + safeName + '.pdf');
@@ -971,8 +979,9 @@ const downloadPirForm = async () => {
                         <div class="text-right">
                             <p class="font-semibold text-gray-700">Requested by:</p>
                             <input
-                                v-model="pirForm.requested_by"
-                                :class="['mt-4 w-52 border-b text-center text-xs focus:outline-none', fieldClass('requested_by')]"
+                                :value="pirForm.requested_by"
+                                readonly
+                                class="mt-4 w-52 cursor-default border-b border-gray-400 bg-transparent text-center text-xs focus:outline-none"
                             />
                         </div>
                     </div>
@@ -1014,7 +1023,10 @@ const downloadPirForm = async () => {
                                 v-model="pirForm.inspector_name"
                                 :class="['w-full border-b text-center text-xs focus:outline-none', fieldClass('inspector_name')]"
                             />
-                            <p class="mt-0.5 italic text-gray-500">MET-II</p>
+                            <input
+                                v-model="pirForm.inspector_position"
+                                class="mt-0.5 w-full border-b border-dashed border-gray-300 bg-transparent text-center text-xs italic text-gray-500 focus:border-orange-400 focus:outline-none"
+                            />
                         </div>
                         <div>
                             <p class="mb-1 font-semibold text-gray-700">Checked by:</p>
@@ -1022,7 +1034,10 @@ const downloadPirForm = async () => {
                                 v-model="pirForm.checked_by"
                                 :class="['w-full border-b text-center text-xs focus:outline-none', fieldClass('checked_by')]"
                             />
-                            <p class="mt-0.5 italic text-gray-500">MET-II</p>
+                            <input
+                                v-model="pirForm.checked_by_position"
+                                class="mt-0.5 w-full border-b border-dashed border-gray-300 bg-transparent text-center text-xs italic text-gray-500 focus:border-orange-400 focus:outline-none"
+                            />
                         </div>
                         <div>
                             <p class="mb-1 font-semibold text-gray-700">Recommending Approval:</p>
@@ -1030,7 +1045,10 @@ const downloadPirForm = async () => {
                                 v-model="pirForm.recommending_approval"
                                 :class="['w-full border-b text-center text-xs focus:outline-none', fieldClass('recommending_approval')]"
                             />
-                            <p class="mt-0.5 italic text-gray-500">Section Head</p>
+                            <input
+                                v-model="pirForm.recommending_position"
+                                class="mt-0.5 w-full border-b border-dashed border-gray-300 bg-transparent text-center text-xs italic text-gray-500 focus:border-orange-400 focus:outline-none"
+                            />
                         </div>
                         <div>
                             <p class="mb-1 font-semibold text-gray-700">Approved:</p>
@@ -1038,7 +1056,10 @@ const downloadPirForm = async () => {
                                 v-model="pirForm.approved_by"
                                 :class="['w-full border-b text-center text-xs focus:outline-none', fieldClass('approved_by')]"
                             />
-                            <p class="mt-0.5 italic text-gray-500">Medical Center Chief II</p>
+                            <input
+                                v-model="pirForm.approved_by_position"
+                                class="mt-0.5 w-full border-b border-dashed border-gray-300 bg-transparent text-center text-xs italic text-gray-500 focus:border-orange-400 focus:outline-none"
+                            />
                         </div>
                     </div>
 
