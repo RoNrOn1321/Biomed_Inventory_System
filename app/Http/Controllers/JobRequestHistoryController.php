@@ -54,6 +54,7 @@ class JobRequestHistoryController extends Controller
 
         $mapped = $history->through(fn (JobRequest $jr) => [
             'id'               => $jr->id,
+            'equipment_id'     => $jr->linkedEquipment?->id ?? $jr->equipment_id,
             'control_no'       => $jr->control_no,
             'location'         => $jr->linkedEquipment?->location ?? $jr->location,
             'equipment_name'   => $jr->linkedEquipment?->description ?? $jr->equipment_name,

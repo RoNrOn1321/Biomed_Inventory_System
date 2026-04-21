@@ -1946,6 +1946,24 @@ const downloadHistoryPdf = () => {
                                 <p class="text-xs font-semibold uppercase text-slate-400">Remarks</p>
                                 <p class="mt-1.5 text-sm leading-6 text-slate-700">{{ selectedHistoryItem.remarks }}</p>
                             </div>
+
+                            <!-- Pre-Inspection Documents -->
+                            <div v-if="selectedHistoryItem.pre_inspection_documents && selectedHistoryItem.pre_inspection_documents.length" class="rounded-xl border border-orange-100 bg-orange-50/40 p-4">
+                                <p class="text-xs font-semibold uppercase text-orange-600">Pre-Inspection Documents</p>
+                                <div class="mt-3 space-y-2">
+                                    <div
+                                        v-for="doc in selectedHistoryItem.pre_inspection_documents"
+                                        :key="doc.id"
+                                        class="flex items-center justify-between rounded-md border border-orange-100 bg-white px-3 py-2 text-sm"
+                                    >
+                                        <div class="truncate text-slate-800">{{ doc.file_name }}</div>
+                                        <div class="flex items-center gap-3">
+                                            <a :href="doc.preview_url" target="_blank" class="text-sm text-orange-600 hover:underline">Preview</a>
+                                            <a :href="doc.download_url" class="text-sm text-orange-700 hover:underline">Download</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

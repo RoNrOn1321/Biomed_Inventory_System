@@ -112,7 +112,9 @@ class JobRequestController extends Controller
 
     public function export(Request $request, JobRequest $jobRequest)
     {
-        $this->ensureCanManageRequests($request);
+        $user = $request->user();
+        $allowed = ['Biomed_Technician', 'Admin', 'Moderator', 'End_User'];
+        abort_unless(in_array($user?->account_type, $allowed, true), 403);
 
         $jobRequest->load(['acceptedBy:id,name', 'assignedTo:id,name', 'linkedEquipment', 'biomedicalServiceDoc']);
 

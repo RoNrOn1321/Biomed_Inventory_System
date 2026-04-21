@@ -57,6 +57,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 const page = usePage<SharedData>();
 const search = ref('');
 const statusFilter = ref<'All' | 'Pending' | 'Accepted' | 'Done'>('All');
+
+// ─────────────────────────────────────────────────────────────────────────────
 const canAcceptRequests = computed(() => ['Admin', 'Biomed_Technician', 'Moderator'].includes(page.props.auth.user.account_type));
 
 const showToast = ref(false);
@@ -297,6 +299,11 @@ const openViewDialog = (jobRequest: JobRequestItem) => {
 const closeViewDialog = () => {
     isViewDialogOpen.value = false;
     selectedViewRequest.value = null;
+};
+
+const downloadViewRequest = () => {
+    if (!selectedViewRequest.value) return;
+    window.open(`/JobRequests/${selectedViewRequest.value.id}/export`, '_blank');
 };
 
 const sendToPreInspection = (equipmentId: number) => {
@@ -1032,6 +1039,13 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
 
                 <DialogFooter>
                     <Button type="button" variant="outline" @click="closeViewDialog">Close Form</Button>
+                    <Button
+                        type="button"
+                        class="bg-orange-600 text-white hover:bg-orange-700"
+                        @click="downloadViewRequest"
+                    >
+                        Download Job Request
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -1168,5 +1182,6 @@ const statusBadgeClass = (status: JobRequestItem['status']) => {
                 </div>
             </div>
         </transition>
+
     </AppLayout>
 </template>

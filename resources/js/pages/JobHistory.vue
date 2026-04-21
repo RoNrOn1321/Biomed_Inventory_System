@@ -2,7 +2,8 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import axios from 'axios';
+import { computed, ref, watch, nextTick } from 'vue';
 
 interface HistoryItem {
     id: number;
@@ -89,6 +90,79 @@ const downloadHistory = () => {
         search: search.value,
     });
     window.open(`/job-request-history/export?${params.toString()}`, '_blank');
+};
+
+// Job history modal (same behavior as Inventory.vue)
+const jobHistoryModalOpen = ref(false);
+const jobHistoryEquipment = ref(null);
+const jobHistoryItems = ref([]);
+const jobHistoryLoading = ref(false);
+const selectedHistoryId = ref<number | null>(null);
+
+const selectedHistoryItem = computed(() => jobHistoryItems.value.find((h) => h.id === selectedHistoryId.value) ?? null);
+
+const formatHistoryDate = (val: string | null) => {
+    if (!val) return 'N/A';
+    return new Date(val).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+};
+
+const openJobHistoryModal = async (payload: any | null) => {
+    // payload can be either an equipment-like object { id, description, status }
+    // or a single history item (with id, equipment_name, status, etc.).
+    console.log('openJobHistoryModal called with', payload);
+    if (!payload) return;
+
+    const equipmentId = payload.equipment_id ?? payload.id ?? null;
+
+    jobHistoryEquipment.value = { id: equipmentId, description: payload.equipment_name ?? payload.description, status: payload.status };
+    jobHistoryModalOpen.value = true;
+    selectedHistoryId.value = null;
+    await nextTick();
+    console.log('jobHistoryModalOpen set; DOM updated');
+
+    // If we have a numeric equipment id (real equipment), fetch linked history from server.
+    if (payload.equipment_id) {
+        jobHistoryLoading.value = true;
+        try {
+            const res = await axios.get(`/api/equipment/${payload.equipment_id}/job-history`);
+            jobHistoryItems.value = res.data;
+            if (jobHistoryItems.value.length > 0) selectedHistoryId.value = jobHistoryItems.value[0].id;
+        } catch (e) {
+            jobHistoryItems.value = [];
+        } finally {
+            jobHistoryLoading.value = false;
+        }
+        return;
+    }
+
+    // No equipment_id available: treat payload as a single history record and display it.
+    jobHistoryItems.value = [
+        {
+            id: payload.id,
+            equipment_name: payload.equipment_name ?? payload.equipment_name,
+            requester_name: payload.requester_name ?? null,
+            department: payload.department ?? null,
+            issue_summary: payload.issue_summary ?? payload.issue_summary ?? null,
+            priority: payload.priority ?? null,
+            status: payload.status ?? null,
+            repair_category: payload.repair_category ?? null,
+            repair_outcome: payload.repair_outcome ?? null,
+            admin_approval: payload.admin_approval ?? null,
+            assigned_to_name: payload.assigned_to_name ?? null,
+            accepted_by: payload.accepted_by ?? null,
+            requested_at: payload.requested_at ?? null,
+            completed_at: payload.completed_at ?? null,
+            remarks: payload.remarks ?? null,
+            pre_inspection_documents: payload.pre_inspection_documents ?? [],
+        },
+    ];
+    selectedHistoryId.value = payload.id;
+};
+
+const downloadHistoryPdf = () => {
+    if (!selectedHistoryItem.value) return;
+    const id = selectedHistoryItem.value.id;
+    window.open(`/JobRequests/${id}/export`, '_blank');
 };
 </script>
 
@@ -311,19 +385,25 @@ const downloadHistory = () => {
                                 <span v-else class="text-sm text-gray-400">—</span>
                             </td>
 
-                            <!-- Repair Outcome -->
+                            <!-- Repair Outcome (clickable to open equipment job-history modal) -->
                             <td class="whitespace-nowrap border-l border-gray-100 px-3 py-3.5 text-sm">
-                                <span
-                                    v-if="item.repair_outcome === 'Repaired'"
-                                    class="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20"
-                                    >Repaired</span
+                                <button
+                                    type="button"
+                                    class="focus:outline-none"
+                                    @click="openJobHistoryModal(item)"
                                 >
-                                <span
-                                    v-else-if="item.repair_outcome === 'Unserviceable'"
-                                    class="inline-flex items-center rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10"
-                                    >Unserviceable</span
-                                >
-                                <span v-else class="text-sm text-gray-400">—</span>
+                                    <span
+                                        v-if="item.repair_outcome === 'Repaired'"
+                                        class="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20 hover:bg-green-100"
+                                        >Repaired</span
+                                    >
+                                    <span
+                                        v-else-if="item.repair_outcome === 'Unserviceable'"
+                                        class="inline-flex items-center rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10 hover:bg-red-100"
+                                        >Unserviceable</span
+                                    >
+                                    <span v-else class="text-sm text-gray-400">—</span>
+                                </button>
                             </td>
 
                             <!-- Completed Date -->
@@ -448,5 +528,202 @@ const downloadHistory = () => {
                 </svg>
             </button>
         </div>
+
+        <!-- Job History Modal -->
+        <Teleport to="body">
+            <div
+                v-if="jobHistoryModalOpen"
+                class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                @click.self="jobHistoryModalOpen = false"
+            >
+                <div class="mx-4 flex h-[85vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                    <!-- Left: date/title list -->
+                    <div class="flex w-72 shrink-0 flex-col border-r border-gray-100 bg-slate-50">
+                        <div class="border-b border-gray-200 bg-gradient-to-r from-orange-50 to-amber-50 px-5 py-4">
+                            <p class="text-xs font-semibold uppercase tracking-widest text-orange-600">Job History</p>
+                            <h2 class="mt-0.5 text-base font-bold leading-snug text-slate-900">{{ jobHistoryEquipment?.description }}</h2>
+                            <p class="mt-1 text-xs text-slate-500">
+                                {{ jobHistoryEquipment?.status }} · {{ jobHistoryItems.length }} record{{ jobHistoryItems.length === 1 ? '' : 's' }}
+                            </p>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto">
+                            <div v-if="jobHistoryLoading" class="flex h-32 items-center justify-center text-sm text-slate-400">Loading…</div>
+                            <div v-else-if="jobHistoryItems.length === 0" class="flex h-32 items-center justify-center px-4 text-center text-sm text-slate-400">
+                                No job requests linked to this equipment yet.
+                            </div>
+                            <button
+                                v-for="h in jobHistoryItems"
+                                :key="h.id"
+                                type="button"
+                                class="w-full border-b border-gray-100 px-5 py-4 text-left transition hover:bg-orange-50"
+                                :class="selectedHistoryId === h.id ? 'border-l-4 border-l-orange-500 bg-orange-100' : ''"
+                                @click="selectedHistoryId = h.id"
+                            >
+                                <p class="text-xs text-slate-400">{{ formatHistoryDate(h.requested_at) }}</p>
+                                <p class="mt-0.5 text-sm font-semibold leading-snug text-slate-800">{{ h.equipment_name }}</p>
+                                <div class="mt-1.5 flex flex-wrap gap-1">
+                                    <span
+                                        :class="[
+                                            'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                                            h.status === 'Done'
+                                                ? 'bg-emerald-100 text-emerald-700'
+                                                : h.status === 'Accepted'
+                                                  ? 'bg-blue-100 text-blue-700'
+                                                  : 'bg-orange-100 text-orange-700',
+                                        ]"
+                                        >{{ h.status }}</span
+                                    >
+                                    <span
+                                        v-if="h.repair_outcome"
+                                        :class="[
+                                            'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                                            h.repair_outcome === 'Repaired' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600',
+                                        ]"
+                                        >{{ h.repair_outcome }}</span
+                                    >
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right: details panel -->
+                    <div class="flex flex-1 flex-col overflow-hidden">
+                        <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                            <h3 class="text-lg font-bold text-slate-900">Request Details</h3>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    class="rounded-lg px-3 py-1.5 text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                                    @click="downloadHistoryPdf"
+                                    v-if="selectedHistoryItem"
+                                >
+                                    Download PDF
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                    @click="jobHistoryModalOpen = false"
+                                >
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto px-6 py-6">
+                            <div v-if="!selectedHistoryItem" class="flex h-full items-center justify-center text-sm text-slate-400">
+                                Select a record on the left to view details.
+                            </div>
+                            <div v-else class="space-y-5">
+                                <!-- Status badges row -->
+                                <div class="flex flex-wrap gap-2">
+                                    <span
+                                        :class="[
+                                            'inline-flex rounded-full border px-3 py-1 text-xs font-semibold',
+                                            selectedHistoryItem.status === 'Done'
+                                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                                : selectedHistoryItem.status === 'Accepted'
+                                                  ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                                  : 'border-orange-200 bg-orange-50 text-orange-700',
+                                        ]"
+                                        >{{ selectedHistoryItem.status }}</span
+                                    >
+                                    <span
+                                        v-if="selectedHistoryItem.repair_outcome"
+                                        :class="[
+                                            'inline-flex rounded-full border px-3 py-1 text-xs font-semibold',
+                                            selectedHistoryItem.repair_outcome === 'Repaired'
+                                                ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                                                : 'border-red-300 bg-red-50 text-red-700',
+                                        ]"
+                                        >{{ selectedHistoryItem.repair_outcome }}</span
+                                    >
+                                    <span
+                                        v-if="selectedHistoryItem.repair_category"
+                                        class="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
+                                        >{{ selectedHistoryItem.repair_category }} Repair</span
+                                    >
+                                    <span
+                                        v-if="selectedHistoryItem.admin_approval"
+                                        class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600"
+                                    >
+                                        Admin: {{ selectedHistoryItem.admin_approval }}
+                                    </span>
+                                    <span
+                                        :class="[
+                                            'inline-flex rounded-full border px-3 py-1 text-xs font-semibold',
+                                            selectedHistoryItem.priority === 'Urgent'
+                                                ? 'border-red-200 bg-red-50 text-red-700'
+                                                : selectedHistoryItem.priority === 'High'
+                                                  ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                                  : selectedHistoryItem.priority === 'Medium'
+                                                    ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                                    : 'border-slate-200 bg-slate-50 text-slate-600',
+                                        ]"
+                                        >{{ selectedHistoryItem.priority }} priority</span
+                                    >
+                                </div>
+
+                                <div class="grid gap-4 rounded-xl border border-orange-100 bg-orange-50/40 p-4 text-sm md:grid-cols-2">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Requester</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">{{ selectedHistoryItem.requester_name }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Department</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">{{ selectedHistoryItem.department || 'N/A' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Assigned To</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">{{ selectedHistoryItem.assigned_to_name || 'Not assigned' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Accepted By</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">{{ selectedHistoryItem.accepted_by || 'N/A' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Date Requested</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">{{ formatHistoryDate(selectedHistoryItem.requested_at) }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Date Completed</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">{{ formatHistoryDate(selectedHistoryItem.completed_at) }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                                    <p class="text-xs font-semibold uppercase text-slate-400">Issue Summary</p>
+                                    <p class="mt-1.5 text-sm leading-6 text-slate-700">{{ selectedHistoryItem.issue_summary }}</p>
+                                </div>
+
+                                <div v-if="selectedHistoryItem.remarks" class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                                    <p class="text-xs font-semibold uppercase text-slate-400">Remarks</p>
+                                    <p class="mt-1.5 text-sm leading-6 text-slate-700">{{ selectedHistoryItem.remarks }}</p>
+                                </div>
+
+                                <div v-if="selectedHistoryItem.pre_inspection_documents && selectedHistoryItem.pre_inspection_documents.length" class="rounded-xl border border-orange-100 bg-orange-50/40 p-4">
+                                    <p class="text-xs font-semibold uppercase text-orange-600">Pre-Inspection Documents</p>
+                                    <div class="mt-3 space-y-2">
+                                        <div
+                                            v-for="doc in selectedHistoryItem.pre_inspection_documents"
+                                            :key="doc.id"
+                                            class="flex items-center justify-between rounded-md border border-orange-100 bg-white px-3 py-2 text-sm"
+                                        >
+                                            <div class="truncate text-slate-800">{{ doc.file_name }}</div>
+                                            <div class="flex items-center gap-3">
+                                                <a :href="doc.preview_url" target="_blank" class="text-sm text-orange-600 hover:underline">Preview</a>
+                                                <a :href="doc.download_url" class="text-sm text-orange-700 hover:underline">Download</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AppLayout>
 </template>

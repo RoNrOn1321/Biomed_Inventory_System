@@ -150,6 +150,8 @@ class EquipmentController extends Controller
 
     public function jobHistory(Request $request, Equipment $equipment)
     {
+        // Ensure equipment documents are available
+        $equipment->load('documents');
         // Collect job request IDs linked via serial_number through DescEquAccessory
         $linkedViaSerial = [];
         if ($equipment->serial_number) {
@@ -184,6 +186,13 @@ class EquipmentController extends Controller
                 'requested_at' => optional($jr->requested_at)->toIso8601String(),
                 'completed_at' => $jr->status === 'Done' ? optional($jr->updated_at)->toIso8601String() : null,
                 'remarks' => $jr->biomedicalServiceDoc?->remarks,
+                // Attach pre-inspection documents from the equipment (if any)
+                'pre_inspection_documents' => $equipment->documents->map(fn($d) => [
+                    'id' => $d->id,
+                    'file_name' => $d->file_name,
+                    'preview_url' => url('/equipment/documents/' . $d->id . '/preview'),
+                    'download_url' => url('/equipment/documents/' . $d->id . '/download'),
+                ])->values()->all(),
             ]);
 
         return response()->json($history);

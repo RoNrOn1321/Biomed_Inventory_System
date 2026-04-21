@@ -222,8 +222,12 @@
         @php
             $bs = $job->biomedicalServiceDoc;
             $receiveBy = $bs->receive_by ?? $job->acceptedBy?->name ?? ' ';
-            $dateReceive = optional($bs->date_receive)->format('F d, Y') ?? ($job->accepted_at ? \Carbon\Carbon::parse($job->accepted_at)->format('F d, Y') : ' ');
-            $techDateReceived = optional($bs->technician_date_received)->format('F d, Y') ?? ' ';
+            $dateReceive = ($bs && $bs->date_receive)
+                ? \Carbon\Carbon::parse($bs->date_receive)->format('F d, Y')
+                : ($job->accepted_at ? \Carbon\Carbon::parse($job->accepted_at)->format('F d, Y') : ' ');
+            $techDateReceived = ($bs && $bs->technician_date_received)
+                ? \Carbon\Carbon::parse($bs->technician_date_received)->format('F d, Y')
+                : $dateReceive;
         @endphp
         <tr>
             <td style="height:36px">{{ $receiveBy }}</td>
@@ -242,18 +246,35 @@
                     </tr>
                     @php
                         $performedBy = $bs->performed_by ?? $job->acceptedBy?->name ?? ' ';
-                        $datePerformed = optional($bs->date_performed)->format('F d, Y') ?? ($job->accepted_at ? \Carbon\Carbon::parse($job->accepted_at)->format('F d, Y') : ' ');
+                        $datePerformed = ($bs && $bs->date_performed)
+                            ? \Carbon\Carbon::parse($bs->date_performed)->format('F d, Y')
+                            : ($job->accepted_at ? \Carbon\Carbon::parse($job->accepted_at)->format('F d, Y') : ' ');
                         $estimatedDays = $bs->estimated_no_days ?? ' ';
-                        $dateStarted = optional($bs->date_started)->format('F d, Y') ?? '';
-                        $dateFinished = optional($bs->date_finished)->format('F d, Y') ?? '';
-                        $workCompletion = trim($dateStarted . ($dateStarted || $dateFinished ? ' - ' : '') . $dateFinished);
-                        $dateReturned = optional($bs->date_returned)->format('F d, Y') ?? ' ';
+                        $dateStarted = ($bs && $bs->date_started)
+                            ? \Carbon\Carbon::parse($bs->date_started)->format('F d, Y')
+                            : $datePerformed;
+                        $dateFinished = ($bs && $bs->date_finished) ? \Carbon\Carbon::parse($bs->date_finished)->format('F d, Y') : '';
+                        $workCompletion = trim($dateStarted . ($dateStarted || $dateFinished ? ' - ' : '') . $dateFinished) ?: ' ';
+                        $dateReturned = ($bs && $bs->date_returned) ? \Carbon\Carbon::parse($bs->date_returned)->format('F d, Y') : ' ';
                     @endphp
                     <tr>
                         <td style="height:36px">{{ $performedBy }}</td>
                         <td>{{ $datePerformed }}</td>
                         <td>{{ $estimatedDays }}</td>
-                        <td>{{ $workCompletion ?: ' ' }}</td>
+                        <td>
+                            <table style="width:100%; border-collapse:collapse;">
+                                <tr>
+                                    <td style="border:1px solid #000; padding:6px; width:50%; vertical-align:top">
+                                        <div class="muted">Date Started</div>
+                                        <div class="small">{{ $dateStarted ?: ' ' }}</div>
+                                    </td>
+                                    <td style="border:1px solid #000; padding:6px; width:50%; vertical-align:top">
+                                        <div class="muted">Date Finished</div>
+                                        <div class="small">{{ $dateFinished ?: ' ' }}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
                         <td>{{ $dateReturned }}</td>
                     </tr>
                 </table>

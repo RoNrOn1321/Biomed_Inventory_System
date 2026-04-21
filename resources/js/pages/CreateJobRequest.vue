@@ -50,7 +50,6 @@ const form = useForm({
 
 const services = [
     'Repair',
-    'Pre-Inspection',
     'Install Equipment',
     'Calibrate Equipment',
     'Performance Test',
@@ -58,18 +57,44 @@ const services = [
     'Delivery Inspection & Acceptance',
 ];
 
-const submit = () => {
-    console.log('Form submitted:', form.data());
+const formErrors = ref<{
+    location: boolean;
+    equipments: { equipment_name: boolean; end_user: boolean }[];
+    services_desired: boolean;
+    nature_of_work: boolean;
+}>({
+    location: false,
+    equipments: [{ equipment_name: false, end_user: false }],
+    services_desired: false,
+    nature_of_work: false,
+});
 
-    // Convert array structure to what controller expects.
-    // Wait, the backend already expects my new `equipments` array. I just need to post it.
+const validate = (): boolean => {
+    let valid = true;
+    formErrors.value.location = !form.location.trim();
+    if (formErrors.value.location) valid = false;
+    formErrors.value.services_desired = form.services_desired.length === 0;
+    if (formErrors.value.services_desired) valid = false;
+    formErrors.value.equipments = form.equipments.map((eq) => {
+        const nameErr = !eq.equipment_name.trim();
+        const endUserErr = !eq.end_user.trim();
+        if (nameErr || endUserErr) valid = false;
+        return { equipment_name: nameErr, end_user: endUserErr };
+    });
+    formErrors.value.nature_of_work = !form.nature_of_work.trim();
+    if (formErrors.value.nature_of_work) valid = false;
+    return valid;
+};
+
+const submit = () => {
+    if (!validate()) return;
+
     form.post('/request-service', {
         preserveScroll: true,
         onSuccess: () => {
             showToast.value = true;
             toastMessage.value = 'Job request submitted successfully!';
 
-            // Clean equipments specifically
             form.equipments = [
                 {
                     equipment_name: '',
@@ -80,7 +105,13 @@ const submit = () => {
                 },
             ];
 
-            // Keep the name when resetting other fields
+            formErrors.value = {
+                location: false,
+                equipments: [{ equipment_name: false, end_user: false }],
+                services_desired: false,
+                nature_of_work: false,
+            };
+
             const currentName = form.requester_name;
             form.reset();
             form.requester_name = currentName;
@@ -108,11 +139,13 @@ const addEquipment = () => {
         serial_number: '',
         end_user: '',
     });
+    formErrors.value.equipments.push({ equipment_name: false, end_user: false });
 };
 
 const removeEquipment = (index: number) => {
     if (form.equipments.length > 1) {
         form.equipments.splice(index, 1);
+        formErrors.value.equipments.splice(index, 1);
     }
 };
 
@@ -234,13 +267,15 @@ const selectEquipment = (index: number, equipment: any) => {
                                 />
                             </div>
                             <div class="space-y-2">
-                                <Label for="location">Location</Label>
+                                <Label for="location">Location <span class="text-red-500">*</span></Label>
                                 <Input
                                     id="location"
                                     v-model="form.location"
                                     placeholder="e.g. IT, Ward, Room"
-                                    class="border-orange-200 focus:border-orange-500 focus:ring-orange-500"
+                                    :class="formErrors.location ? 'border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200' : 'border-orange-200 focus:border-orange-500 focus:ring-orange-500'"
+                                    @input="formErrors.location = false"
                                 />
+                                <p v-if="formErrors.location" class="mt-1 text-xs text-red-500">Location is required.</p>
                             </div>
                         </div>
                     </section>
@@ -299,14 +334,17 @@ const selectEquipment = (index: number, equipment: any) => {
                                             <span v-if="equipment.location"
                                                 ><span class="font-semibold text-slate-500">Location:</span> {{ equipment.location }}</span
                                             >
-                                            <div class="mt-2 flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-                                                <Label class="whitespace-nowrap text-xs font-semibold text-slate-500">End User:</Label>
-                                                <Input
-                                                    v-model="equipment.end_user"
-                                                    placeholder="Enter end user"
-                                                    class="h-8 w-full border-orange-200 bg-white text-xs focus:border-orange-400 focus:ring-orange-400 sm:w-48"
-                                                    required
-                                                />
+                                            <div class="mt-2 flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-start">
+                                                <Label class="whitespace-nowrap pt-1 text-xs font-semibold text-slate-500">End User: <span class="text-red-500">*</span></Label>
+                                                <div class="flex flex-col gap-1">
+                                                    <Input
+                                                        v-model="equipment.end_user"
+                                                        placeholder="Enter end user"
+                                                        :class="['h-8 w-full text-xs sm:w-48', formErrors.equipments[index]?.end_user ? 'border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200' : 'border-orange-200 bg-white focus:border-orange-400 focus:ring-orange-400']"
+                                                        @input="formErrors.equipments[index] && (formErrors.equipments[index].end_user = false)"
+                                                    />
+                                                    <p v-if="formErrors.equipments[index]?.end_user" class="text-xs text-red-500">End user is required.</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -336,16 +374,16 @@ const selectEquipment = (index: number, equipment: any) => {
                                         :id="`eq_name_${index}`"
                                         v-model="equipment.equipment_name"
                                         placeholder="Type equipment name, brand, or serial number..."
-                                        class="h-11 border-orange-200 bg-white text-sm focus:border-orange-400 focus:ring-orange-400"
-                                        required
+                                        :class="['h-11 bg-white text-sm', formErrors.equipments[index]?.equipment_name ? 'border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200' : 'border-orange-200 focus:border-orange-400 focus:ring-orange-400']"
                                         autocomplete="off"
-                                        @input="handleEquipmentSearch(index)"
+                                        @input="handleEquipmentSearch(index); formErrors.equipments[index] && (formErrors.equipments[index].equipment_name = false)"
                                         @focus="
                                             activeSearchIndex = index;
                                             handleEquipmentSearch(index);
                                         "
                                         @blur="setTimeout(() => (activeSearchIndex = null), 200)"
                                     />
+                                    <p v-if="formErrors.equipments[index]?.equipment_name" class="mt-1 text-xs text-red-500">Equipment name is required.</p>
 
                                     <!-- Autocomplete Results Dropdown -->
                                     <ul
@@ -402,7 +440,7 @@ const selectEquipment = (index: number, equipment: any) => {
                             ></textarea>
                         </div> -->
 
-                        <div class="rounded-xl border border-orange-100 bg-orange-50/50 p-4">
+                        <div :class="['rounded-xl border p-4', formErrors.services_desired ? 'border-red-400 bg-red-50' : 'border-orange-100 bg-orange-50/50']">
                             <div class="space-y-3">
                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                                     <div v-for="service in services" :key="service" class="flex items-center space-x-2">
@@ -412,7 +450,7 @@ const selectEquipment = (index: number, equipment: any) => {
                                             :checked="form.services_desired.includes(service)"
                                             @update:checked="
                                                 (checked) => {
-                                                    if (checked) form.services_desired.push(service);
+                                                    if (checked) { form.services_desired.push(service); formErrors.services_desired = false; }
                                                     else form.services_desired = form.services_desired.filter((s) => s !== service);
                                                 }
                                             "
@@ -426,13 +464,14 @@ const selectEquipment = (index: number, equipment: any) => {
                                             :checked="form.services_desired.includes('Others')"
                                             @update:checked="
                                                 (checked) => {
-                                                    if (checked) form.services_desired.push('Others');
+                                                    if (checked) { form.services_desired.push('Others'); formErrors.services_desired = false; }
                                                     else form.services_desired = form.services_desired.filter((s) => s !== 'Others');
                                                 }
                                             "
                                             class="border-orange-300 data-[state=checked]:border-orange-600 data-[state=checked]:bg-orange-600"
                                         />
                                         <Label for="Others" class="mr-2 text-sm font-normal">Others</Label>
+
                                         <Input
                                             v-model="form.other_service"
                                             class="h-8 flex-1 border-orange-200 bg-white text-sm"
@@ -442,16 +481,19 @@ const selectEquipment = (index: number, equipment: any) => {
                                 </div>
                             </div>
                         </div>
+                        <p v-if="formErrors.services_desired" class="mt-1 text-xs text-red-500">Please select at least one service.</p>
 
                         <div class="space-y-2 pt-2">
                             <Label for="nature_of_work" class="inline-block rounded bg-orange-100 px-3 py-1 text-sm font-semibold text-orange-900">
-                                NATURE OF WORK REQUESTED / COMPLAINTS:
+                                NATURE OF WORK REQUESTED / COMPLAINTS: <span class="text-red-500">*</span>
                             </Label>
                             <textarea
                                 id="nature_of_work"
                                 v-model="form.nature_of_work"
-                                class="min-h-[80px] w-full rounded-md border border-orange-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                :class="['min-h-[80px] w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50', formErrors.nature_of_work ? 'border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200' : 'border-orange-200 focus:border-orange-500 focus:ring-orange-500']"
+                                @input="formErrors.nature_of_work = false"
                             ></textarea>
+                            <p v-if="formErrors.nature_of_work" class="mt-1 text-xs text-red-500">Nature of work / complaints is required.</p>
                         </div>
                     </section>
 

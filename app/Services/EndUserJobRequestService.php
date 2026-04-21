@@ -14,7 +14,7 @@ class EndUserJobRequestService
     public function getHistory(int $userId): array
     {
         return JobRequest::where('user_id', $userId)
-            ->with(['acceptedBy:id,name', 'biomedicalServiceDoc', 'requestDetail', 'repair'])
+            ->with(['acceptedBy:id,name', 'biomedicalServiceDoc', 'requestDetail', 'repair', 'linkedEquipment.documents'])
             ->orderByDesc('created_at')
             ->get()
             ->map(function ($job) {
@@ -40,6 +40,15 @@ class EndUserJobRequestService
                     'job_report' => $job->job_report,
                     'location' => $job->location,
                     'date' => $job->date,
+                    // Include any pre-inspection documents attached to the linked equipment
+                    'pre_inspection_documents' => $job->linkedEquipment?->documents
+                        ? $job->linkedEquipment->documents->map(fn($d) => [
+                            'id' => $d->id,
+                            'file_name' => $d->file_name,
+                            'preview_url' => url('/equipment/documents/' . $d->id . '/preview'),
+                            'download_url' => url('/equipment/documents/' . $d->id . '/download'),
+                        ])->values()->all()
+                        : [],
                 ];
             })
             ->all();
