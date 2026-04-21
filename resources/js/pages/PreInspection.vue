@@ -603,7 +603,7 @@ const downloadPirForm = async () => {
             <!-- Info banner -->
             <div class="mb-6 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800">
                 <p>
-                    Equipment listed here has been flagged as <strong>Defective</strong> and requires a final inspection. You can restore equipment to
+                    Equipment listed here has been flagged as <strong>unserviceable</strong> and requires a final inspection. You can restore equipment to
                     <strong class="text-green-700">Functional</strong> or mark it as <strong class="text-red-700">Condemned</strong> for disposal.
                 </p>
             </div>
