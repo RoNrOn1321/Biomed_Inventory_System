@@ -279,7 +279,6 @@ const jrDownloadHistoryPdf = () => {
                             </div>
                         </div>
                     </article>
-                    </article>
 
                     <!-- Empty State -->
                     <div
