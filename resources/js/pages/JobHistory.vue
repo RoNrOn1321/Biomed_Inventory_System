@@ -94,8 +94,8 @@ const downloadHistory = () => {
 
 // Job history modal (same behavior as Inventory.vue)
 const jobHistoryModalOpen = ref(false);
-const jobHistoryEquipment = ref(null);
-const jobHistoryItems = ref([]);
+const jobHistoryEquipment = ref<any>(null);
+const jobHistoryItems = ref<HistoryItem[]>([]);
 const jobHistoryLoading = ref(false);
 const selectedHistoryId = ref<number | null>(null);
 

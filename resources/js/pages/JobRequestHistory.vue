@@ -6,7 +6,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ClipboardList, History, Search } from 'lucide-vue-next';
-import { computed, ref, nextTick } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 
 interface JobRequestHistoryItem {
     id: number;
@@ -242,7 +242,9 @@ const jrDownloadHistoryPdf = () => {
                                         <span
                                             :class="[
                                                 'rounded-full border px-3 py-1 text-xs font-semibold',
-                                                req.repair_outcome === 'Repaired' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700',
+                                                req.repair_outcome === 'Repaired'
+                                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                                    : 'border-red-200 bg-red-50 text-red-700',
                                             ]"
                                         >
                                             {{ req.repair_outcome }}
@@ -269,16 +271,19 @@ const jrDownloadHistoryPdf = () => {
                                         </div>
                                     </div>
                                 </div>
-
                             </div>
 
                             <div class="mt-4 flex shrink-0 sm:ml-auto sm:mt-0">
-                                <Button type="button" variant="outline" class="border-slate-300 text-slate-700 hover:bg-slate-50" @click="openViewDialog(req)">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    class="border-slate-300 text-slate-700 hover:bg-slate-50"
+                                    @click="openViewDialog(req)"
+                                >
                                     View Form
                                 </Button>
                             </div>
                         </div>
-                    </article>
                     </article>
 
                     <!-- Empty State -->
@@ -490,102 +495,175 @@ const jrDownloadHistoryPdf = () => {
             </DialogContent>
         </Dialog>
 
-            <!-- Job History Modal (teleport) -->
-            <Teleport to="body">
-                <div
-                    v-if="jrJobHistoryModalOpen"
-                    class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
-                    @click.self="jrJobHistoryModalOpen = false"
-                >
-                    <div class="mx-4 flex h-[85vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-                        <div class="flex w-72 shrink-0 flex-col border-r border-gray-100 bg-slate-50">
-                                <div class="border-b border-gray-200 bg-gradient-to-r from-orange-50 to-amber-50 px-5 py-4">
-                                    <p class="text-xs font-semibold uppercase tracking-widest text-orange-600">Job History</p>
-                                    <h2 class="mt-0.5 text-base font-bold leading-snug text-slate-900">{{ jrJobHistoryEquipment?.description }}</h2>
-                                    <p class="mt-1 text-xs text-slate-500">{{ jrJobHistoryEquipment?.status }} · {{ jrJobHistoryItems.length }} record{{ jrJobHistoryItems.length === 1 ? '' : 's' }}</p>
-                                </div>
+        <!-- Job History Modal (teleport) -->
+        <Teleport to="body">
+            <div
+                v-if="jrJobHistoryModalOpen"
+                class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                @click.self="jrJobHistoryModalOpen = false"
+            >
+                <div class="mx-4 flex h-[85vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                    <div class="flex w-72 shrink-0 flex-col border-r border-gray-100 bg-slate-50">
+                        <div class="border-b border-gray-200 bg-gradient-to-r from-orange-50 to-amber-50 px-5 py-4">
+                            <p class="text-xs font-semibold uppercase tracking-widest text-orange-600">Job History</p>
+                            <h2 class="mt-0.5 text-base font-bold leading-snug text-slate-900">{{ jrJobHistoryEquipment?.description }}</h2>
+                            <p class="mt-1 text-xs text-slate-500">
+                                {{ jrJobHistoryEquipment?.status }} · {{ jrJobHistoryItems.length }} record{{
+                                    jrJobHistoryItems.length === 1 ? '' : 's'
+                                }}
+                            </p>
+                        </div>
 
-                            <div class="flex-1 overflow-y-auto">
-                                <div v-if="jrJobHistoryLoading" class="flex h-32 items-center justify-center text-sm text-slate-400">Loading…</div>
-                                <div v-else-if="jrJobHistoryItems.length === 0" class="flex h-32 items-center justify-center px-4 text-center text-sm text-slate-400">No job requests linked to this equipment yet.</div>
-                                <button v-for="h in jrJobHistoryItems" :key="h.id" type="button" class="w-full border-b border-gray-100 px-5 py-4 text-left transition hover:bg-orange-50" :class="jrSelectedHistoryId === h.id ? 'border-l-4 border-l-orange-500 bg-orange-100' : ''" @click="jrSelectedHistoryId = h.id">
-                                    <p class="text-xs text-slate-400">{{ formatHistoryDate(h.requested_at) }}</p>
-                                    <p class="mt-0.5 text-sm font-semibold leading-snug text-slate-800">{{ h.equipment_name }}</p>
-                                    <div class="mt-1.5 flex flex-wrap gap-1">
-                                        <span :class="['inline-flex rounded-full px-2 py-0.5 text-xs font-medium', h.status === 'Done' ? 'bg-emerald-100 text-emerald-700' : h.status === 'Accepted' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700']">{{ h.status }}</span>
-                                        <span v-if="h.repair_outcome" :class="['inline-flex rounded-full px-2 py-0.5 text-xs font-medium', h.repair_outcome === 'Repaired' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600']">{{ h.repair_outcome }}</span>
-                                    </div>
+                        <div class="flex-1 overflow-y-auto">
+                            <div v-if="jrJobHistoryLoading" class="flex h-32 items-center justify-center text-sm text-slate-400">Loading…</div>
+                            <div
+                                v-else-if="jrJobHistoryItems.length === 0"
+                                class="flex h-32 items-center justify-center px-4 text-center text-sm text-slate-400"
+                            >
+                                No job requests linked to this equipment yet.
+                            </div>
+                            <button
+                                v-for="h in jrJobHistoryItems"
+                                :key="h.id"
+                                type="button"
+                                class="w-full border-b border-gray-100 px-5 py-4 text-left transition hover:bg-orange-50"
+                                :class="jrSelectedHistoryId === h.id ? 'border-l-4 border-l-orange-500 bg-orange-100' : ''"
+                                @click="jrSelectedHistoryId = h.id"
+                            >
+                                <p class="text-xs text-slate-400">{{ formatHistoryDate(h.requested_at) }}</p>
+                                <p class="mt-0.5 text-sm font-semibold leading-snug text-slate-800">{{ h.equipment_name }}</p>
+                                <div class="mt-1.5 flex flex-wrap gap-1">
+                                    <span
+                                        :class="[
+                                            'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                                            h.status === 'Done'
+                                                ? 'bg-emerald-100 text-emerald-700'
+                                                : h.status === 'Accepted'
+                                                  ? 'bg-blue-100 text-blue-700'
+                                                  : 'bg-orange-100 text-orange-700',
+                                        ]"
+                                        >{{ h.status }}</span
+                                    >
+                                    <span
+                                        v-if="h.repair_outcome"
+                                        :class="[
+                                            'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                                            h.repair_outcome === 'Repaired' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600',
+                                        ]"
+                                        >{{ h.repair_outcome }}</span
+                                    >
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-1 flex-col overflow-hidden">
+                        <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                            <h3 class="text-lg font-bold text-slate-900">Request Details</h3>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                    @click="jrDownloadHistoryPdf"
+                                    v-if="jrSelectedHistoryItem"
+                                >
+                                    Download PDF
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                    @click="jrJobHistoryModalOpen = false"
+                                >
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="flex flex-1 flex-col overflow-hidden">
-                            <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                                <h3 class="text-lg font-bold text-slate-900">Request Details</h3>
-                                <div class="flex items-center gap-2">
-                                    <button type="button" class="rounded-lg px-3 py-1.5 text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50" @click="jrDownloadHistoryPdf" v-if="jrSelectedHistoryItem">Download PDF</button>
-                                    <button type="button" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600" @click="jrJobHistoryModalOpen = false">
-                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </div>
+                        <div class="flex-1 overflow-y-auto px-6 py-6">
+                            <div v-if="!jrSelectedHistoryItem" class="flex h-full items-center justify-center text-sm text-slate-400">
+                                Select a record on the left to view details.
                             </div>
+                            <div v-else class="space-y-5">
+                                <div class="flex flex-wrap gap-2">
+                                    <span
+                                        :class="[
+                                            'inline-flex rounded-full border px-3 py-1 text-xs font-semibold',
+                                            jrSelectedHistoryItem.status === 'Done'
+                                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                                : jrSelectedHistoryItem.status === 'Accepted'
+                                                  ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                                  : 'border-orange-200 bg-orange-50 text-orange-700',
+                                        ]"
+                                        >{{ jrSelectedHistoryItem.status }}</span
+                                    >
+                                    <span
+                                        v-if="jrSelectedHistoryItem.repair_outcome"
+                                        :class="[
+                                            'inline-flex rounded-full border px-3 py-1 text-xs font-semibold',
+                                            jrSelectedHistoryItem.repair_outcome === 'Repaired'
+                                                ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                                                : 'border-red-300 bg-red-50 text-red-700',
+                                        ]"
+                                        >{{ jrSelectedHistoryItem.repair_outcome }}</span
+                                    >
+                                </div>
 
-                            <div class="flex-1 overflow-y-auto px-6 py-6">
-                                <div v-if="!jrSelectedHistoryItem" class="flex h-full items-center justify-center text-sm text-slate-400">Select a record on the left to view details.</div>
-                                <div v-else class="space-y-5">
-                                    <div class="flex flex-wrap gap-2">
-                                        <span :class="['inline-flex rounded-full border px-3 py-1 text-xs font-semibold', jrSelectedHistoryItem.status === 'Done' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : jrSelectedHistoryItem.status === 'Accepted' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-orange-200 bg-orange-50 text-orange-700']">{{ jrSelectedHistoryItem.status }}</span>
-                                        <span v-if="jrSelectedHistoryItem.repair_outcome" :class="['inline-flex rounded-full border px-3 py-1 text-xs font-semibold', jrSelectedHistoryItem.repair_outcome === 'Repaired' ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-red-300 bg-red-50 text-red-700']">{{ jrSelectedHistoryItem.repair_outcome }}</span>
+                                <div class="grid gap-4 rounded-xl border border-orange-100 bg-orange-50/40 p-4 text-sm md:grid-cols-2">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Requester</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">{{ jrSelectedHistoryItem.requester_name }}</p>
                                     </div>
-
-                                    <div class="grid gap-4 rounded-xl border border-orange-100 bg-orange-50/40 p-4 text-sm md:grid-cols-2">
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase text-slate-400">Requester</p>
-                                            <p class="mt-0.5 font-medium text-slate-800">{{ jrSelectedHistoryItem.requester_name }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase text-slate-400">Department</p>
-                                            <p class="mt-0.5 font-medium text-slate-800">{{ jrSelectedHistoryItem.department || 'N/A' }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase text-slate-400">Assigned To</p>
-                                            <p class="mt-0.5 font-medium text-slate-800">{{ jrSelectedHistoryItem.assigned_to_name || 'Not assigned' }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase text-slate-400">Accepted By</p>
-                                            <p class="mt-0.5 font-medium text-slate-800">{{ jrSelectedHistoryItem.accepted_by || 'N/A' }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase text-slate-400">Date Requested</p>
-                                            <p class="mt-0.5 font-medium text-slate-800">{{ formatHistoryDate(jrSelectedHistoryItem.requested_at) }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase text-slate-400">Date Completed</p>
-                                            <p class="mt-0.5 font-medium text-slate-800">{{ formatHistoryDate(jrSelectedHistoryItem.completed_at) }}</p>
-                                        </div>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Department</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">{{ jrSelectedHistoryItem.department || 'N/A' }}</p>
                                     </div>
-
-                                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                                        <p class="text-xs font-semibold uppercase text-slate-400">Issue Summary</p>
-                                        <p class="mt-1.5 text-sm leading-6 text-slate-700">{{ jrSelectedHistoryItem.issue_summary }}</p>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Assigned To</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">
+                                            {{ jrSelectedHistoryItem.assigned_to_name || 'Not assigned' }}
+                                        </p>
                                     </div>
-
-                                    <div v-if="jrSelectedHistoryItem.remarks" class="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                                        <p class="text-xs font-semibold uppercase text-slate-400">Remarks</p>
-                                        <p class="mt-1.5 text-sm leading-6 text-slate-700">{{ jrSelectedHistoryItem.remarks }}</p>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Accepted By</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">{{ jrSelectedHistoryItem.accepted_by || 'N/A' }}</p>
                                     </div>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Date Requested</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">{{ formatHistoryDate(jrSelectedHistoryItem.requested_at) }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase text-slate-400">Date Completed</p>
+                                        <p class="mt-0.5 font-medium text-slate-800">{{ formatHistoryDate(jrSelectedHistoryItem.completed_at) }}</p>
+                                    </div>
+                                </div>
 
-                                    <div v-if="jrSelectedHistoryItem.pre_inspection_documents && jrSelectedHistoryItem.pre_inspection_documents.length" class="rounded-xl border border-orange-100 bg-orange-50/40 p-4">
-                                        <p class="text-xs font-semibold uppercase text-orange-600">Pre-Inspection Documents</p>
-                                        <div class="mt-3 space-y-2">
-                                            <div v-for="doc in jrSelectedHistoryItem.pre_inspection_documents" :key="doc.id" class="flex items-center justify-between rounded-md border border-orange-100 bg-white px-3 py-2 text-sm">
-                                                <div class="truncate text-slate-800">{{ doc.file_name }}</div>
-                                                <div class="flex items-center gap-3">
-                                                    <a :href="doc.preview_url" target="_blank" class="text-sm text-orange-600 hover:underline">Preview</a>
-                                                    <a :href="doc.download_url" class="text-sm text-orange-700 hover:underline">Download</a>
-                                                </div>
+                                <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                                    <p class="text-xs font-semibold uppercase text-slate-400">Issue Summary</p>
+                                    <p class="mt-1.5 text-sm leading-6 text-slate-700">{{ jrSelectedHistoryItem.issue_summary }}</p>
+                                </div>
+
+                                <div v-if="jrSelectedHistoryItem.remarks" class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                                    <p class="text-xs font-semibold uppercase text-slate-400">Remarks</p>
+                                    <p class="mt-1.5 text-sm leading-6 text-slate-700">{{ jrSelectedHistoryItem.remarks }}</p>
+                                </div>
+
+                                <div
+                                    v-if="jrSelectedHistoryItem.pre_inspection_documents && jrSelectedHistoryItem.pre_inspection_documents.length"
+                                    class="rounded-xl border border-orange-100 bg-orange-50/40 p-4"
+                                >
+                                    <p class="text-xs font-semibold uppercase text-orange-600">Pre-Inspection Documents</p>
+                                    <div class="mt-3 space-y-2">
+                                        <div
+                                            v-for="doc in jrSelectedHistoryItem.pre_inspection_documents"
+                                            :key="doc.id"
+                                            class="flex items-center justify-between rounded-md border border-orange-100 bg-white px-3 py-2 text-sm"
+                                        >
+                                            <div class="truncate text-slate-800">{{ doc.file_name }}</div>
+                                            <div class="flex items-center gap-3">
+                                                <a :href="doc.preview_url" target="_blank" class="text-sm text-orange-600 hover:underline">Preview</a>
+                                                <a :href="doc.download_url" class="text-sm text-orange-700 hover:underline">Download</a>
                                             </div>
                                         </div>
                                     </div>
@@ -594,6 +672,7 @@ const jrDownloadHistoryPdf = () => {
                         </div>
                     </div>
                 </div>
-            </Teleport>
+            </div>
+        </Teleport>
     </AppLayout>
 </template>
