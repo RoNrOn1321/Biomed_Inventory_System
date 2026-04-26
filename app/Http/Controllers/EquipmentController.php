@@ -56,7 +56,7 @@ class EquipmentController extends Controller
             'from' => ['required', 'date_format:Y-m'],
             'to' => ['required', 'date_format:Y-m'],
             'search' => ['nullable', 'string'],
-            'status' => ['nullable', 'string', 'in:Functional,Defective,Unserviceable'],
+            'status' => ['nullable', 'string', 'in:Functional,Defective,Unserviceable,Pre Inspection'],
         ]);
 
         $from = Carbon::createFromFormat('Y-m', $validated['from'])->startOfMonth();

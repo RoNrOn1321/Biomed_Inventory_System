@@ -7,13 +7,13 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
     server: {
-        cors:true,
-        host:"0.0.0.0",
+        cors: true,
+        host: '0.0.0.0',
         port: 5173,
         strictPort: true,
-        hmr:{
-            host: '192.168.1.14',
-        }
+        hmr: {
+            host: '192.168.1.24',
+        },
     },
     plugins: [
         laravel({
