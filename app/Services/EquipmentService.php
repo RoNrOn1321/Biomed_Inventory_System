@@ -61,9 +61,9 @@ class EquipmentService
         $equipment->delete();
     }
 
-    public function export(string $format, Carbon $from, Carbon $to, ?string $search, ?string $status = null)
+    public function export(string $format, Carbon $from, Carbon $to, ?string $search, ?string $status = null, ?string $location = null)
     {
-        $equipment = $this->buildExportQuery($from, $to, $search, $status)->get();
+        $equipment = $this->buildExportQuery($from, $to, $search, $status, $location)->get();
         $filenameBase = sprintf('inventory-%s-to-%s', $from->format('Y-m'), $to->format('Y-m'));
 
         return match ($format) {
@@ -110,7 +110,7 @@ class EquipmentService
         return $query;
     }
 
-    private function buildExportQuery(Carbon $from, Carbon $to, ?string $search, ?string $status = null)
+    private function buildExportQuery(Carbon $from, Carbon $to, ?string $search, ?string $status = null, ?string $location = null)
     {
         $query = Equipment::query()
             ->whereBetween('pm_date_done', [$from->toDateString(), $to->toDateString()])
@@ -131,6 +131,10 @@ class EquipmentService
 
         if ($status) {
             $query->where('status', $status);
+        }
+
+        if ($location) {
+            $query->where('location', $location);
         }
 
         return $query;

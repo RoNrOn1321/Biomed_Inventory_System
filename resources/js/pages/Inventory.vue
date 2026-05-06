@@ -156,6 +156,7 @@ const filterLocation = ref(props.filters.location || 'all');
 const exportFormat = ref<'pdf' | 'excel' | 'word'>('pdf');
 const exportFrom = ref(defaultFromMonthValue);
 const exportTo = ref(currentMonthValue);
+const exportLocation = ref('all');
 
 const exportRangeLabel = computed(() => {
     const from = new Date(`${exportFrom.value}-01T00:00:00`);
@@ -186,8 +187,8 @@ watch([search, filterYear, filterMonth, filterStatus, filterLocation], () => {
 
 const clearFilters = () => {
     search.value = '';
-    filterYear.value = props.isEndUser ? 'all' : currentYear;
-    filterMonth.value = props.isEndUser ? 'all' : currentMonth;
+    filterYear.value = 'all';
+    filterMonth.value = 'all';
     filterStatus.value = 'all';
     filterLocation.value = 'all';
 };
@@ -224,6 +225,9 @@ const downloadInventory = () => {
     });
     if (filterStatus.value !== 'all') {
         params.set('status', filterStatus.value);
+    }
+    if (exportLocation.value !== 'all') {
+        params.set('location', exportLocation.value);
     }
 
     window.open(`/equipment/export?${params.toString()}`, '_blank');
@@ -653,19 +657,20 @@ const downloadHistoryPdf = () => {
                                 v-model="filterYear"
                                 class="block w-28 rounded-lg border-0 py-2.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-orange-600 sm:text-sm sm:leading-6"
                             >
-                                <option value="all">All</option>
+                                <option value="all">All Years</option>
                                 <option value="2022">2022</option>
                                 <option value="2023">2023</option>
                                 <option value="2024">2024</option>
                                 <option value="2025">2025</option>
                                 <option value="2026">2026</option>
+                                
                             </select>
                             <select
                                 id="filterMonth"
                                 v-model="filterMonth"
                                 class="block w-36 rounded-lg border-0 py-2.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-orange-600 sm:text-sm sm:leading-6"
                             >
-                                <option value="all">All</option>
+                                <option value="all">All Months</option>
                                 <option value="01">January</option>
                                 <option value="02">February</option>
                                 <option value="03">March</option>
@@ -1711,6 +1716,18 @@ const downloadHistoryPdf = () => {
                             <option value="word">Word</option>
                         </select>
                     </div>
+
+                    <!-- <div v-if="!isEndUser">
+                        <label for="exportLocation" class="mb-2 block text-sm font-medium text-slate-700">Location</label>
+                        <select
+                            id="exportLocation"
+                            v-model="exportLocation"
+                            class="w-full rounded-xl border border-orange-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                        >
+                            <option value="all">All Locations</option>
+                            <option v-for="user in users" :key="user.id" :value="user.name">{{ user.name }}</option>
+                        </select>
+                    </div> -->
 
                     <div class="rounded-xl border border-orange-100 bg-orange-50 p-3 text-sm text-orange-800">
                         <strong>Range:</strong> {{ exportRangeLabel }}

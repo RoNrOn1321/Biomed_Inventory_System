@@ -57,6 +57,7 @@ class EquipmentController extends Controller
             'to' => ['required', 'date_format:Y-m'],
             'search' => ['nullable', 'string'],
             'status' => ['nullable', 'string', 'in:Functional,Defective,Unserviceable,Pre Inspection'],
+            'location' => ['nullable', 'string'],
         ]);
 
         $from = Carbon::createFromFormat('Y-m', $validated['from'])->startOfMonth();
@@ -64,7 +65,7 @@ class EquipmentController extends Controller
 
         abort_if($from->gt($to), 422, 'The export date range is invalid.');
 
-        return $this->equipmentService->export($validated['format'], $from, $to, $validated['search'] ?? null, $validated['status'] ?? null);
+        return $this->equipmentService->export($validated['format'], $from, $to, $validated['search'] ?? null, $validated['status'] ?? null, $validated['location'] ?? null);
     }
 
     public function store(Request $request)
