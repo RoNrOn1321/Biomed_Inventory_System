@@ -60,6 +60,7 @@ const props = defineProps<{
         month?: string;
         search?: string;
         status?: string;
+        location?: string;
     };
     users: { id: number; name: string }[];
     isEndUser: boolean;
@@ -151,6 +152,7 @@ const search = ref(props.filters.search || '');
 const filterYear = ref(props.filters.year || 'all');
 const filterMonth = ref(props.filters.month || 'all');
 const filterStatus = ref(props.filters.status || 'all');
+const filterLocation = ref(props.filters.location || 'all');
 const exportFormat = ref<'pdf' | 'excel' | 'word'>('pdf');
 const exportFrom = ref(defaultFromMonthValue);
 const exportTo = ref(currentMonthValue);
@@ -164,7 +166,7 @@ const exportRangeLabel = computed(() => {
 
 let searchTimeout: ReturnType<typeof setTimeout>;
 
-watch([search, filterYear, filterMonth, filterStatus], () => {
+watch([search, filterYear, filterMonth, filterStatus, filterLocation], () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
         router.get(
@@ -174,6 +176,7 @@ watch([search, filterYear, filterMonth, filterStatus], () => {
                 year: filterYear.value || undefined,
                 month: filterMonth.value || undefined,
                 status: filterStatus.value !== 'all' ? filterStatus.value : undefined,
+                location: filterLocation.value !== 'all' ? filterLocation.value : undefined,
                 viewAll: props.viewAll || undefined,
             },
             { preserveState: true, preserveScroll: true, replace: true },
@@ -186,6 +189,7 @@ const clearFilters = () => {
     filterYear.value = props.isEndUser ? 'all' : currentYear;
     filterMonth.value = props.isEndUser ? 'all' : currentMonth;
     filterStatus.value = 'all';
+    filterLocation.value = 'all';
 };
 
 const toggleViewAll = () => {
@@ -632,7 +636,18 @@ const downloadHistoryPdf = () => {
                 >
                     <div>
                         <label for="filterYear" class="block text-sm font-medium text-gray-800">Filter By:</label>
-                        <div class="mt-1 flex items-end gap-2">
+                        <div class="mt-1 flex flex-wrap items-end gap-2">
+                            <select
+                                id="filterLocation"
+                                v-model="filterLocation"
+                                v-if="!isEndUser"
+                                class="block w-40 rounded-lg border-0 py-2.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-orange-600 sm:text-sm sm:leading-6"
+                            >
+                                <option value="all">All Locations</option>
+                                <option v-for="user in users" :key="user.id" :value="user.name">
+                                    {{ user.name }}
+                                </option>
+                            </select>
                             <select
                                 id="filterYear"
                                 v-model="filterYear"

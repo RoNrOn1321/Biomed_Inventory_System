@@ -15,7 +15,7 @@ class EquipmentController extends Controller
 
     public function index(Request $request)
     {
-        $filters = $request->only(['year', 'month', 'search', 'status']);
+        $filters = $request->only(['year', 'month', 'search', 'status', 'location']);
 
         $user = $request->user();
         $isEndUser = $user->account_type === 'End_User';
