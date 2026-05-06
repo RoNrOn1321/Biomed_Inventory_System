@@ -21,8 +21,8 @@ class EquipmentController extends Controller
         $isEndUser = $user->account_type === 'End_User';
         $viewAll = $request->boolean('viewAll', false);
 
-        $filters['year'] = $filters['year'] ?? ($isEndUser ? 'all' : now()->year);
-        $filters['month'] = $filters['month'] ?? ($isEndUser ? 'all' : now()->format('m'));
+        $filters['year'] = $filters['year'] ?? 'all';
+        $filters['month'] = $filters['month'] ?? 'all';
 
         $queryFilters = $filters;
         if ($queryFilters['year'] === 'all') {

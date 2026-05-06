@@ -148,8 +148,8 @@ const toastMessage = ref('');
 let toastTimeout: ReturnType<typeof setTimeout>;
 
 const search = ref(props.filters.search || '');
-const filterYear = ref(props.filters.year || (props.isEndUser ? 'all' : currentYear));
-const filterMonth = ref(props.filters.month || (props.isEndUser ? 'all' : currentMonth));
+const filterYear = ref(props.filters.year || 'all');
+const filterMonth = ref(props.filters.month || 'all');
 const filterStatus = ref(props.filters.status || 'all');
 const exportFormat = ref<'pdf' | 'excel' | 'word'>('pdf');
 const exportFrom = ref(defaultFromMonthValue);
